@@ -1,5 +1,7 @@
 # Testcontainers Dart
 
+[![CI](https://github.com/06ED/testcontainers_dart/actions/workflows/ci.yml/badge.svg)](https://github.com/06ED/testcontainers_dart/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/06ED/testcontainers_dart/branch/main/graph/badge.svg)](https://codecov.io/gh/06ED/testcontainers_dart)
 [![Dart SDK: ^3.11.3](https://img.shields.io/badge/Dart-%5E3.11.3-0175C2?style=flat-square&logo=dart&logoColor=white)](https://dart.dev/get-dart)
 [![Docker required](https://img.shields.io/badge/Docker-required-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docs.docker.com/get-started/get-docker/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENCE)
@@ -37,8 +39,11 @@ addTearDown(container.terminate);
 `Testcontainers.run` owns a connection and closes it after successful termination.
 To share a connection across containers, use `DockerProvider.connect()`, call
 `provider.start(config)`, terminate every container, then call `provider.close()`.
-Closing a provider **does not delete containers**. An injected `dockerApi` remains
-owned by its caller.
+With Ryuk enabled (the default), closing a provider ends its session and triggers
+delayed cleanup of any remaining containers. `close()` does not wait for that
+cleanup; use `terminate()` for immediate removal. With Ryuk disabled, closing a
+provider only closes its connection. An injected `dockerApi` remains owned by its
+caller.
 
 ## Container API
 
@@ -113,6 +118,65 @@ Published ports bind to `127.0.0.1` by default. For a remote daemon, explicitly 
 Unencrypted TCP gives control over Docker: never expose it to untrusted networks.
 HTTP requests, including response bodies, have a timeout (default two minutes).
 
+## Ryuk cleanup
+
+Each provider lazily starts one `testcontainers/ryuk:0.14.0` container before its
+first user container. Concurrent starts share that Ryuk instance. Every
+`Testcontainers.run()` owns a separate provider/session; share a provider to use
+one Ryuk for a group of containers.
+
+Containers receive `org.testcontainers=true` and a random
+`org.testcontainers.sessionId` label at creation. The `org.testcontainers` label
+namespace is reserved. The library registers the session filter with Ryuk and
+waits for `ACK` before creating user containers. If startup fails, it reports the
+error rather than silently proceeding without cleanup protection.
+
+The TCP connection stays open until the provider closes or its process dies.
+After the last connection is lost, Ryuk waits its reconnection grace period
+(currently 10 seconds), removes matching containers and their anonymous volumes,
+then exits and auto-removes itself. Other sessions, pulled images, named volumes
+and bind-mounted files are not targeted. Continue to use `finally` or
+`addTearDown`: Ryuk is a fallback, not immediate teardown. Always close shared
+providers; an open Ryuk socket keeps the Dart process alive. If an established
+connection is lost, new starts fail; create a new provider rather than reusing
+that session. Existing containers may be removed after the grace period.
+
+Ryuk mounts the daemon's Docker socket with read/write access. **That grants
+control over the Docker daemon**, even without privileged container mode. The
+default mount source is `/var/run/docker.sock`, including on Docker Desktop;
+it is not the client's `$HOME/.docker/run/docker.sock`.
+
+```dart
+final provider = await DockerProvider.connect(
+  ryuk: const RyukConfig(
+    socketPath: '/var/run/docker.sock', // Path on the daemon's host.
+    startupTimeout: Duration(seconds: 30),
+  ),
+);
+// Start containers, register teardown, and close the provider when finished.
+```
+
+`RyukConfig` is also accepted by `Testcontainers.run()` and the injected
+`DockerProvider` constructor. `image` overrides the pinned image;
+`portBindingHost` defaults to `127.0.0.1`. With a remote daemon, configure both a
+reachable binding and `DockerConfig.host`; never expose Ryuk's unauthenticated
+port to an untrusted network. `startupTimeout` bounds TCP connection retries and
+the ACK wait after Docker startup; image pulls and Docker API calls use
+`DockerConfig.requestTimeout`.
+
+Without an explicit `RyukConfig`, these environment variables apply:
+
+| Variable | Meaning |
+| --- | --- |
+| `TESTCONTAINERS_RYUK_DISABLED` | `true` disables Ryuk; default `false` |
+| `TESTCONTAINERS_RYUK_CONTAINER_IMAGE` | Override `testcontainers/ryuk:0.14.0` |
+| `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` | Socket mount source on the daemon host |
+
+Use `ryuk: const RyukConfig(enabled: false)` where socket mounting is prohibited
+and an external system handles cleanup. Crash cleanup depends on Ryuk and Docker
+remaining available; it is not an unconditional guarantee. Failure during Ryuk's
+own creation is cleaned up by its generated name on a best-effort basis.
+
 ## Workspace
 
 A [Pub workspace](https://dart.dev/tools/pub/workspaces) with two library packages:
@@ -148,15 +212,57 @@ From the repository root:
 dart pub get
 dart pub workspace list
 dart analyze
-dart test packages
+dart test packages/docker_engine/test packages/testcontainers_dart/test
 ```
 
-Run `dart test` from an individual package directory to test just that package.
-The default tests do not require Docker. To run the real-Docker smoke test:
+Run `dart test` from an individual package directory to run its `test/` suite.
+These tests do not require Docker. Real-Docker tests live separately in
+`packages/testcontainers_dart/integration_test/`; with Docker running, use:
 
 ```sh
-TESTCONTAINERS_INTEGRATION=1 dart test packages/testcontainers_dart/test/integration/docker_test.dart
+dart test packages/testcontainers_dart/integration_test
 ```
+
+No environment flag is required. The Ryuk process tests require POSIX signals
+and are skipped on Windows. Avoid `dart test packages` for Docker-free checks:
+that recursive command also discovers `integration_test/`.
+
+### CI and coverage
+
+GitHub Actions runs on pull requests and pushes to `main`:
+
+- [Very Good Workflows v2.0.3](https://github.com/VeryGoodOpenSource/very_good_workflows)
+  checks formatting, analysis and VM tests for each package on stable Dart.
+- Unit-test line coverage includes all `lib/` files, including unimported files,
+  except `docker_engine/lib/src/generated/`. Minimums are **80%** for
+  `docker_engine` and **95%** for `testcontainers_dart`.
+- A separate job checks analysis and unit tests on the minimum SDK,
+  **Dart 3.11.3**, without VGV's CLI (which requires Dart 3.13+). This also checks
+  the workspace examples. Formatting is checked on stable Dart to avoid
+  differences between formatter versions.
+- A Docker-enabled Ubuntu job runs `integration_test/` separately. Integration
+  tests and their child processes are not included in the coverage badge.
+- Package LCOV artifacts are uploaded together to Codecov using GitHub OIDC;
+  no `CODECOV_TOKEN` secret is needed. The badge shows combined unit-test coverage.
+
+Codecov allows a one-percentage-point drop from the base commit and requires 90%
+coverage of changed lines. Package minimums are enforced independently by VGV.
+The coverage badge becomes available after the first successful upload on `main`.
+
+To reproduce the coverage checks locally, use Dart 3.13+ and run from each
+package directory (use `80` instead of `95` for `docker_engine`):
+
+```sh
+dart pub global activate very_good_cli 1.5.0
+very_good dart test --coverage --platform vm --collect-coverage-from all \
+  --report-on lib --exclude-coverage '**/src/generated/**' \
+  --min-coverage 95 --no-check-ignore --no-optimization \
+  --test-randomize-ordering-seed random
+```
+
+Reports are written to each package's `coverage/lcov.info`. Coverage exclusions
+are applied to the VGV threshold and Codecov display; raw LCOV may still contain
+generated files.
 
 The Docker client is generated from the Engine v1.53 schema using Swagger/Chopper.
 Generated sources are included. Regenerate from its package directory:
@@ -189,8 +295,8 @@ have not been checked or reserved.
 
 ## Deliberate limits
 
-- No Ryuk yet: explicit teardown and startup-failure cleanup cannot guarantee
-  removal after process crashes, forced termination or an ambiguous create timeout.
+- Ryuk needs a mountable Docker socket and a reachable published TCP port. Cleanup
+  cannot be guaranteed if the Docker daemon or Ryuk itself fails.
 - No registry authentication, Docker client-certificate env configuration, SSH,
   Windows named pipes, Compose, image builds, file copy, network management or reuse.
 - Logs/exec output and pull responses are buffered, not exposed as live streams.

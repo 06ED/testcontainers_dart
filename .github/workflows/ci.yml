@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  packages:
+    name: ${{ matrix.package }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: docker_engine
+            min_coverage: 80
+            analyze_directories: lib test
+          - package: testcontainers_dart
+            min_coverage: 95
+            analyze_directories: lib test integration_test
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/dart_package.yml@v2.0.3
+    with:
+      working_directory: packages/${{ matrix.package }}
+      dart_sdk: stable
+      platform: vm
+      analyze_directories: ${{ matrix.analyze_directories }}
+      collect_coverage_from: all
+      coverage_excludes: '**/src/generated/**'
+      min_coverage: ${{ matrix.min_coverage }}
+      test_optimization: false
+      artifact_name: coverage-${{ matrix.package }}
+      artifact_paths: packages/${{ matrix.package }}/coverage/lcov.info
+      timeout_minutes: 15
+
+  minimum-sdk:
+    name: Dart 3.11.3
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1.8.1
+        with:
+          sdk: '3.11.3'
+      - run: dart pub get --enforce-lockfile
+      - run: dart analyze --fatal-infos --fatal-warnings
+      - run: dart test packages/docker_engine/test packages/testcontainers_dart/test
+
+  integration:
+    name: Docker integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1.8.1
+        with:
+          sdk: stable
+      - run: dart pub get --enforce-lockfile
+      - run: dart format --output=none --set-exit-if-changed examples
+      - run: docker info
+      - run: dart test packages/testcontainers_dart/integration_test
+
+  coverage:
+    name: Upload coverage
+    needs: packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-*
+          path: coverage
+      - name: Make LCOV paths relative to the repository
+        run: |
+          sed 's|^SF:lib/|SF:packages/docker_engine/lib/|' coverage/coverage-docker_engine/lcov.info > coverage/docker_engine.info
+          sed 's|^SF:lib/|SF:packages/testcontainers_dart/lib/|' coverage/coverage-testcontainers_dart/lcov.info > coverage/testcontainers_dart.info
+      - uses: codecov/codecov-action@v7
+        with:
+          use_oidc: true
+          files: coverage/docker_engine.info,coverage/testcontainers_dart.info
+          disable_search: true
+          fail_ci_if_error: true

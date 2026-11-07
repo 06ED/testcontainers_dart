@@ -82,7 +82,10 @@ void main() {
     test(
       'untagged images pull latest, not every tag in the repository',
       () async {
-        final provider = DockerProvider(dockerApi: api);
+        final provider = DockerProvider(
+          dockerApi: api,
+          ryuk: const RyukConfig(enabled: false),
+        );
         for (final image in ['redis', 'registry.example:5000/team/redis']) {
           await provider.start(ContainerConfig(image: image));
           verify(
@@ -102,14 +105,18 @@ void main() {
         final environment = {'MODE': 'test'};
         final command = ['original'];
         final labels = {'owner': 'test'};
-        final started = DockerProvider(dockerApi: api).start(
-          ContainerConfig(
-            image: 'redis',
-            environment: environment,
-            command: command,
-            labels: labels,
-          ),
-        );
+        final started =
+            DockerProvider(
+              dockerApi: api,
+              ryuk: const RyukConfig(enabled: false),
+            ).start(
+              ContainerConfig(
+                image: 'redis',
+                environment: environment,
+                command: command,
+                labels: labels,
+              ),
+            );
         environment['MODE'] = 'changed';
         command[0] = 'changed';
         labels['owner'] = 'changed';
@@ -144,6 +151,7 @@ void main() {
         );
         final container = await DockerProvider(
           dockerApi: api,
+          ryuk: const RyukConfig(enabled: false),
         ).start(const ContainerConfig(image: 'redis'));
         await expectLater(
           container.terminate(),
@@ -166,6 +174,7 @@ void main() {
         await expectLater(
           DockerProvider(
             dockerApi: api,
+            ryuk: const RyukConfig(enabled: false),
           ).start(const ContainerConfig(image: 'redis')),
           throwsA(isA<DockerException>()),
         );
@@ -182,7 +191,10 @@ void main() {
     test(
       'passes environment, command, ports and read-only bind mounts',
       () async {
-        final provider = DockerProvider(dockerApi: api);
+        final provider = DockerProvider(
+          dockerApi: api,
+          ryuk: const RyukConfig(enabled: false),
+        );
         await provider.start(
           const ContainerConfig(
             image: 'redis:7-alpine',
@@ -226,7 +238,10 @@ void main() {
     );
 
     test('validates requests before contacting Docker', () async {
-      final provider = DockerProvider(dockerApi: api);
+      final provider = DockerProvider(
+        dockerApi: api,
+        ryuk: const RyukConfig(enabled: false),
+      );
       for (final request in [
         const ContainerConfig(image: ''),
         const ContainerConfig(image: 'redis', exposedPorts: [Port.tcp(0)]),
@@ -256,6 +271,7 @@ void main() {
       await expectLater(
         DockerProvider(
           dockerApi: api,
+          ryuk: const RyukConfig(enabled: false),
         ).start(const ContainerConfig(image: 'redis')),
         throwsA(
           isA<DockerException>().having((e) => e.statusCode, 'status', 500),
@@ -282,6 +298,7 @@ void main() {
       await expectLater(
         DockerProvider(
           dockerApi: api,
+          ryuk: const RyukConfig(enabled: false),
         ).start(const ContainerConfig(image: 'redis')),
         throwsA(
           isA<DockerException>().having(
@@ -308,6 +325,7 @@ void main() {
         await expectLater(
           DockerProvider(
             dockerApi: api,
+            ryuk: const RyukConfig(enabled: false),
           ).start(const ContainerConfig(image: 'redis')),
           throwsA(
             isA<ContainerStartException>().having(
@@ -336,6 +354,7 @@ void main() {
         await expectLater(
           DockerProvider(
             dockerApi: api,
+            ryuk: const RyukConfig(enabled: false),
           ).start(ContainerConfig(image: 'redis', waitStrategy: FailingWait())),
           throwsA(
             isA<ContainerStartException>()
@@ -362,6 +381,7 @@ void main() {
         ).thenAnswer((_) async => response<dynamic>(404, null));
         final container = await DockerProvider(
           dockerApi: api,
+          ryuk: const RyukConfig(enabled: false),
         ).start(const ContainerConfig(image: 'redis'));
         await container.terminate();
         await container.terminate();
@@ -374,12 +394,16 @@ void main() {
     test('fails clearly when a port has no binding', () async {
       final container = await DockerProvider(
         dockerApi: api,
+        ryuk: const RyukConfig(enabled: false),
       ).start(const ContainerConfig(image: 'redis'));
       await expectLater(container.mappedPort(6379), throwsA(isA<StateError>()));
     });
 
     test('starts container using pull -> create -> start flow', () async {
-      final provider = DockerProvider(dockerApi: api);
+      final provider = DockerProvider(
+        dockerApi: api,
+        ryuk: const RyukConfig(enabled: false),
+      );
 
       final container = await provider.start(
         const ContainerConfig(
@@ -409,7 +433,10 @@ void main() {
         ),
       );
 
-      final provider = DockerProvider(dockerApi: api);
+      final provider = DockerProvider(
+        dockerApi: api,
+        ryuk: const RyukConfig(enabled: false),
+      );
       final container = await provider.start(
         const ContainerConfig(
           image: 'redis:7-alpine',
@@ -425,7 +452,10 @@ void main() {
     });
 
     test('uses stop timeout when stopping container', () async {
-      final provider = DockerProvider(dockerApi: api);
+      final provider = DockerProvider(
+        dockerApi: api,
+        ryuk: const RyukConfig(enabled: false),
+      );
       final container = await provider.start(
         const ContainerConfig(
           image: 'redis:7-alpine',

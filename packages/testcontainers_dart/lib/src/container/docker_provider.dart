@@ -1,34 +1,60 @@
-import 'dart:convert';
-
 import 'package:docker_engine/docker_engine.dart' hide ContainerConfig;
 
 import '../errors/exceptions.dart';
+import '../ryuk/ryuk_config.dart';
+import '../ryuk/ryuk_session.dart';
 import 'container_config.dart';
+import 'pull_image.dart';
 import 'started_container.dart';
 
 typedef DockerApi = Docker;
 
 class DockerProvider {
-  DockerProvider({required DockerApi dockerApi, this.host = 'localhost'})
-    : _api = dockerApi,
-      _connection = null;
+  DockerProvider({
+    required DockerApi dockerApi,
+    this.host = 'localhost',
+    RyukConfig? ryuk,
+  }) : _api = dockerApi,
+       _connection = null {
+    _configureRyuk(ryuk);
+  }
 
-  DockerProvider._(DockerConnection connection)
+  DockerProvider._(DockerConnection connection, RyukConfig ryuk)
     : _connection = connection,
       _api = connection.api,
-      host = connection.host;
+      host = connection.host {
+    _configureRyuk(ryuk);
+  }
 
-  static Future<DockerProvider> connect({DockerConfig? config}) async =>
-      DockerProvider._(
-        await DockerConnection.connect(
-          config ?? DockerConfig.fromEnvironment(),
-        ),
-      );
+  static Future<DockerProvider> connect({
+    DockerConfig? config,
+    RyukConfig? ryuk,
+  }) async {
+    final settings = ryuk ?? RyukConfig.fromEnvironment();
+    settings.validate();
+    return DockerProvider._(
+      await DockerConnection.connect(config ?? DockerConfig.fromEnvironment()),
+      settings,
+    );
+  }
+
+  void _configureRyuk(RyukConfig? config) {
+    final settings = config ?? RyukConfig.fromEnvironment();
+    settings.validate();
+    if (settings.enabled) _ryuk = RyukSession(_api, host, settings);
+  }
 
   final DockerConnection? _connection;
   final DockerApi _api;
   final String host;
   bool _closed = false;
+  int _starts = 0;
+  RyukSession? _ryuk;
+
+  void _checkActive() {
+    if (_closed) throw StateError('DockerProvider is closed');
+    _ryuk?.checkActive();
+  }
 
   Future<StartedContainer> start(ContainerConfig request) => _start(request);
 
@@ -36,26 +62,33 @@ class DockerProvider {
     ContainerConfig request, {
     bool closeOnTerminate = false,
   }) async {
+    _starts++;
+    try {
+      return await _startContainer(request, closeOnTerminate: closeOnTerminate);
+    } finally {
+      _starts--;
+      if (_closed && _starts == 0) _connection?.close();
+    }
+  }
+
+  Future<StartedContainer> _startContainer(
+    ContainerConfig request, {
+    required bool closeOnTerminate,
+  }) async {
     if (_closed) throw StateError('DockerProvider is closed');
     request.validate();
     final body = request.toJson();
-    final image = request.image;
-    final tagged =
-        image.contains('@') || image.lastIndexOf(':') > image.lastIndexOf('/');
-    final pull = await _api.imagesCreatePost(
-      fromImage: tagged ? image : '$image:latest',
-    );
-    checkResponse(pull);
-    for (final line in const LineSplitter().convert(responseText(pull))) {
-      if (line.trim().isEmpty) continue;
-      final event = jsonDecode(line) as Map<String, dynamic>;
-      if (event['error'] != null || event['errorDetail'] != null) {
-        throw DockerException(
-          '${event['error'] ?? event['errorDetail']}',
-          statusCode: pull.statusCode,
-        );
-      }
+    final session = _ryuk;
+    if (session != null) {
+      body['Labels'].addAll({
+        'org.testcontainers': 'true',
+        'org.testcontainers.sessionId': session.id,
+      });
+      await session.ensureStarted();
     }
+    _checkActive();
+    await pullImage(_api, request.image);
+    _checkActive();
     final created = await _api.containersCreatePost(
       name: request.name,
       body: body,
@@ -73,8 +106,11 @@ class DockerProvider {
       onTerminate: closeOnTerminate ? close : null,
     );
     try {
+      _checkActive();
       checkResponse(await _api.containersIdStartPost(id: id));
+      _checkActive();
       await request.waitStrategy.waitUntilReady(container);
+      _checkActive();
       return container;
     } catch (error) {
       var logs = '';
@@ -103,18 +139,20 @@ class DockerProvider {
   void close() {
     if (_closed) return;
     _closed = true;
-    _connection?.close();
+    _ryuk?.close();
+    // Let in-flight startup finish its cleanup before closing the transport.
+    if (_starts == 0) _connection?.close();
   }
 }
 
 abstract final class Testcontainers {
-  // shortcut: explicit cleanup only, add Ryuk before promising crash-safe teardown.
   static Future<StartedContainer> run(
     ContainerConfig request, {
     DockerConfig? config,
+    RyukConfig? ryuk,
   }) async {
     request.validate();
-    final provider = await DockerProvider.connect(config: config);
+    final provider = await DockerProvider.connect(config: config, ryuk: ryuk);
     try {
       return await provider._start(request, closeOnTerminate: true);
     } catch (_) {

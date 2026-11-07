@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:test/test.dart';
 import 'package:testcontainers_dart/testcontainers_dart.dart';
 
@@ -47,9 +45,6 @@ void main() {
         ),
       );
     },
-    skip: Platform.environment['TESTCONTAINERS_INTEGRATION'] == '1'
-        ? false
-        : 'Set TESTCONTAINERS_INTEGRATION=1 to use a real Docker daemon',
     timeout: const Timeout(Duration(minutes: 5)),
   );
 }

@@ -20,6 +20,7 @@ class StartedContainer {
   final String id;
   final String image;
   final String host;
+
   Future<void>? _termination;
 
   Future<Map<String, dynamic>> inspect() async {
@@ -33,24 +34,29 @@ class StartedContainer {
 
   Future<int> mappedPort(int port, {String protocol = 'tcp'}) async {
     Port.tcp(port).validate();
+
     if (protocol != 'tcp' && protocol != 'udp') {
       throw ArgumentError.value(protocol, 'protocol');
     }
+
     final info = await inspect();
     final bindings =
         info['NetworkSettings']?['Ports']?['$port/$protocol'] as List<dynamic>?;
     if (bindings == null || bindings.isEmpty) {
       throw StateError('No host binding for $port/$protocol in $id');
     }
+
     final result = int.tryParse('${bindings.first['HostPort']}');
     if (result == null || result < 1 || result > 65535) {
       throw StateError('Invalid host port for $port/$protocol in $id');
     }
+
     return result;
   }
 
   Future<String> logs({int tail = 1000}) async {
     if (tail < 0) throw ArgumentError.value(tail, 'tail');
+
     final response = await _api.containersIdLogsGet(
       id: id,
       stdout: true,
@@ -58,10 +64,12 @@ class StartedContainer {
       tail: '$tail',
     );
     checkResponse(response);
+
     final base = response.base;
     final bytes = base is http.Response && base.bodyBytes.isNotEmpty
         ? base.bodyBytes
         : utf8.encode(responseText(response));
+
     return decodeDockerOutput(bytes).combined;
   }
 

@@ -1,6 +1,7 @@
 # https://dart.dev/guides/libraries/private-files
 # Created by `dart pub`
 .dart_tool/
+coverage/
 
 # Workspace members share the root lockfile, which should be committed.
 packages/**/pubspec.lock

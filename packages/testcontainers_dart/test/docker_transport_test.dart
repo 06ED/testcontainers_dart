@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:test/test.dart';
 import 'package:testcontainers_dart/testcontainers_dart.dart';
 
-import 'support/docker_server.dart';
+import 'utils/docker_server.dart';
 
 void main() {
   test('configuration reads Docker host and service host override', () {
@@ -72,6 +72,7 @@ void main() {
     Future<void> connect() async {
       provider = await DockerProvider.connect(
         config: DockerConfig(endpoint: server.endpoint),
+        ryuk: const RyukConfig(enabled: false),
       );
       addTearDown(provider.close);
     }
@@ -266,6 +267,7 @@ void main() {
         final container = await Testcontainers.run(
           const ContainerConfig(image: 'redis'),
           config: DockerConfig(endpoint: server.endpoint),
+          ryuk: const RyukConfig(enabled: false),
         );
         expect(await container.mappedPort(6379), 32768);
         await container.terminate();
@@ -292,6 +294,7 @@ void main() {
       await directory.delete(recursive: true);
     });
     final provider = await DockerProvider.connect(
+      ryuk: const RyukConfig(enabled: false),
       config: DockerConfig(
         endpoint: Uri(scheme: 'unix', path: path),
       ),

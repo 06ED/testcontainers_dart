@@ -57,6 +57,13 @@ class ContainerConfig {
       throw ArgumentError.value(image, 'image', 'An image is required');
     }
 
+    if (labels.keys.any(
+      (key) =>
+          key == 'org.testcontainers' || key.startsWith('org.testcontainers.'),
+    )) {
+      throw ArgumentError('The org.testcontainers label namespace is reserved');
+    }
+
     for (final port in exposedPorts) {
       port.validate();
     }
