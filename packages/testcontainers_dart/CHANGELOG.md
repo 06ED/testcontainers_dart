@@ -1,5 +1,6 @@
 ## 0.1.0
 
+- Use the package name `testcontainers_dart` and the matching public library.
 - Name the container launch configuration `ContainerConfig`.
 - Move into a Pub workspace and depend on the standalone `docker_engine` package;
   keep public Testcontainers imports and Docker configuration/errors available.

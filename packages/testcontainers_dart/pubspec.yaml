@@ -1,4 +1,4 @@
-name: testcontainers
+name: testcontainers_dart
 description: Async disposable Docker containers for Dart integration tests, with readiness checks, logs, exec and cleanup.
 version: 0.1.0
 resolution: workspace

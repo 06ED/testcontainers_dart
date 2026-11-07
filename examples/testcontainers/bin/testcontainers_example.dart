@@ -1,4 +1,4 @@
-import 'package:testcontainers/testcontainers.dart';
+import 'package:testcontainers_dart/testcontainers_dart.dart';
 
 Future<void> main() async {
   final container = await Testcontainers.run(

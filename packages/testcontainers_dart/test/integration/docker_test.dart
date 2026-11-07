@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:test/test.dart';
-import 'package:testcontainers/testcontainers.dart';
+import 'package:testcontainers_dart/testcontainers_dart.dart';
 
 void main() {
   test(

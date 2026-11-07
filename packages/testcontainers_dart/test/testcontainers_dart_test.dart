@@ -10,7 +10,7 @@ import 'package:docker_engine/docker_engine.dart'
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
-import 'package:testcontainers/testcontainers.dart';
+import 'package:testcontainers_dart/testcontainers_dart.dart';
 
 class MockDockerApi extends Mock implements DockerApi {}
 

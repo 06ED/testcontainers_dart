@@ -10,7 +10,7 @@ Dart building blocks for disposable Docker containers. Requires a running Docker
 ## Quick start
 
 ```dart
-import 'package:testcontainers/testcontainers.dart';
+import 'package:testcontainers_dart/testcontainers_dart.dart';
 
 Future<void> main() async {
   final container = await Testcontainers.run(ContainerConfig(
@@ -120,12 +120,12 @@ A [Pub workspace](https://dart.dev/tools/pub/workspaces) with two library packag
 | Package                                      | Responsibility                                                                               |
 | -------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | [`docker_engine`](packages/docker_engine/)   | Generated Docker Engine API, Unix/TCP transport, API negotiation, errors and stream decoding |
-| [`testcontainers`](packages/testcontainers/) | Disposable container lifecycle, readiness strategies and cleanup                             |
+| [`testcontainers_dart`](packages/testcontainers_dart/) | Disposable container lifecycle, readiness strategies and cleanup                             |
 
 ```text
 packages/
 ├── docker_engine/           # Public Docker client, generated API and tests
-└── testcontainers/          # Lifecycle, readiness and tests
+└── testcontainers_dart/     # Lifecycle, readiness and tests
 examples/
 └── testcontainers/          # Runnable Dart package
     ├── pubspec.yaml
@@ -136,7 +136,7 @@ Requires Dart **3.11.3+**. The root is not published. Each member declares
 `resolution: workspace`; one root `pubspec.lock` and `.dart_tool/package_config.json`
 serve the entire repository. Commit the root lockfile.
 
-`testcontainers` depends on `docker_engine: ^0.1.0`. Pub resolves this to the
+`testcontainers_dart` depends on `docker_engine: ^0.1.0`. Pub resolves this to the
 local workspace package automatically, without path dependencies or overrides.
 The dependency is one-way: `docker_engine` knows nothing about Testcontainers.
 
@@ -155,7 +155,7 @@ Run `dart test` from an individual package directory to test just that package.
 The default tests do not require Docker. To run the real-Docker smoke test:
 
 ```sh
-TESTCONTAINERS_INTEGRATION=1 dart test packages/testcontainers/test/integration/docker_test.dart
+TESTCONTAINERS_INTEGRATION=1 dart test packages/testcontainers_dart/test/integration/docker_test.dart
 ```
 
 The Docker client is generated from the Engine v1.53 schema using Swagger/Chopper.
@@ -184,7 +184,7 @@ container in `finally`.
 Docker client details: [Docker Engine client](packages/docker_engine/README.md).
 
 Packages can be published separately; publish `docker_engine` before a
-`testcontainers` release that depends on it. Package names/versions on pub.dev
+`testcontainers_dart` release that depends on it. Package names/versions on pub.dev
 have not been checked or reserved.
 
 ## Deliberate limits
