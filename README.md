@@ -1,7 +1,7 @@
 # Testcontainers Dart
 
-[![CI](https://github.com/06ED/testcontainers_dart/actions/workflows/ci.yml/badge.svg)](https://github.com/06ED/testcontainers_dart/actions/workflows/ci.yml)
-[![Coverage](https://codecov.io/gh/06ED/testcontainers_dart/branch/main/graph/badge.svg)](https://codecov.io/gh/06ED/testcontainers_dart)
+[![CI](https://img.shields.io/github/actions/workflow/status/06ED/testcontainers_dart/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/06ED/testcontainers_dart/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/06ED/testcontainers_dart/main?style=flat-square&label=coverage)](https://codecov.io/gh/06ED/testcontainers_dart)
 [![Dart SDK: ^3.11.3](https://img.shields.io/badge/Dart-%5E3.11.3-0175C2?style=flat-square&logo=dart&logoColor=white)](https://dart.dev/get-dart)
 [![Docker required](https://img.shields.io/badge/Docker-required-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docs.docker.com/get-started/get-docker/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](https://github.com/06ED/testcontainers_dart/blob/main/LICENCE)
@@ -28,7 +28,7 @@ Future<void> main() async {
     ContainerConfig(
       image: 'redis:7-alpine',
       exposedPorts: const [Port.tcp(6379)],
-      waitStrategy: Wait.forSuccessfulCommand(['redis-cli', 'ping']),
+      waitStrategy: .forSuccessfulCommand(['redis-cli', 'ping']),
     ),
   );
 
@@ -63,7 +63,7 @@ final config = ContainerConfig(
   command: const ['redis-server', '--appendonly', 'yes'],
   exposedPorts: const [Port.tcp(6379)],
   labels: const {'project': 'my-app'},
-  waitStrategy: Wait.forSuccessfulCommand(['redis-cli', 'ping']),
+  waitStrategy: .forSuccessfulCommand(['redis-cli', 'ping']),
 );
 ```
 
@@ -77,6 +77,20 @@ and are read-only unless `readOnly: false` is set. Source paths must exist on th
 The `org.testcontainers` label namespace is reserved.
 
 ## Waiting for readiness
+
+Create a `Wait` using a named factory constructor. Where Dart can infer the type
+(such as `waitStrategy:`), the class name can be omitted:
+
+```dart
+final config = ContainerConfig(
+  image: 'nginx:1.28-alpine',
+  exposedPorts: const [Port.tcp(80)],
+  waitStrategy: .forAll([
+    .forLogMessage('Configuration complete'),
+    .forHttp(port: 80),
+  ]),
+);
+```
 
 ```dart
 Wait.forNothing(); // Default: starts the container without checking readiness.
