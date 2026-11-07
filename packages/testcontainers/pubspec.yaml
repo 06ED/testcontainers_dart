@@ -3,6 +3,9 @@ description: Async disposable Docker containers for Dart integration tests, with
 version: 0.1.0
 resolution: workspace
 
+repository: https://github.com/06ED/testcontainers_dart
+issue_tracker: https://github.com/06ED/testcontainers_dart/issues
+
 environment:
   sdk: ^3.11.3
 
