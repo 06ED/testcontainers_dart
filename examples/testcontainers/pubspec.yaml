@@ -1,0 +1,10 @@
+name: testcontainers_example
+description: Runnable example of disposable Docker containers.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.11.3
+
+dependencies:
+  testcontainers: ^0.1.0

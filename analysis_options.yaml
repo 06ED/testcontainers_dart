@@ -1,0 +1,10 @@
+include: package:lints/recommended.yaml
+
+linter:
+  rules:
+     - prefer_relative_imports
+     - prefer_single_quotes
+
+analyzer:
+  exclude:
+     - packages/docker_engine/lib/src/generated/**
