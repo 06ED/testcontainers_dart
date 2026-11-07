@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:test/test.dart';
 import 'package:testcontainers_dart/testcontainers_dart.dart';
@@ -124,6 +125,54 @@ void main() {
         if (docker.paths[i].endsWith('/containers/create'))
           jsonDecode(docker.bodies[i]) as Map<String, dynamic>,
     ];
+
+    for (final disabled in [false, true]) {
+      test(
+        'provider applies process Ryuk settings (disabled: $disabled)',
+        () async {
+          final library = await Isolate.resolvePackageUri(
+            Uri.parse('package:testcontainers_dart/testcontainers_dart.dart'),
+          );
+          final result = await Process.run(
+            Platform.resolvedExecutable,
+            [
+              library!
+                  .resolve('../test/utils/provider_process.dart')
+                  .toFilePath(),
+            ],
+            environment: {
+              'DOCKER_HOST': '${docker.endpoint}',
+              'TESTCONTAINERS_HOST_OVERRIDE': '127.0.0.1',
+              'DOCKER_TLS_VERIFY': '',
+              'DOCKER_CERT_PATH': '',
+              'TESTCONTAINERS_RYUK_DISABLED': '$disabled',
+              'TESTCONTAINERS_RYUK_CONTAINER_IMAGE': 'env/ryuk:0.14.0',
+              'TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE': '/run/env-docker.sock',
+            },
+          );
+          expect(result.exitCode, 0, reason: '${result.stderr}');
+          final requests = bodies();
+          expect(requests, hasLength(disabled ? 1 : 2));
+          expect(requests.last['Image'], 'redis');
+          if (disabled) {
+            expect(requests.single['Labels'], isEmpty);
+            expect(creates, 0);
+          } else {
+            expect(creates, 1);
+            expect(requests.first['Image'], 'env/ryuk:0.14.0');
+            expect(
+              requests.first['HostConfig']['Mounts'][0]['Source'],
+              '/run/env-docker.sock',
+            );
+            expect(
+              requests.last['Labels']['org.testcontainers.sessionId'],
+              isNotEmpty,
+            );
+            await disconnected.future.timeout(const Duration(seconds: 3));
+          }
+        },
+      );
+    }
 
     test(
       'starts lazily, waits for split ACK and shares one session across concurrent starts',

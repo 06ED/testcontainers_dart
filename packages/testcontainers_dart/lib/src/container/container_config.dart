@@ -1,4 +1,4 @@
-import '../wait/wait_strategy.dart';
+import '../wait/wait.dart';
 
 class Port {
   const Port.tcp(this.number) : protocol = 'tcp';
@@ -39,7 +39,7 @@ class ContainerConfig {
     this.mounts = const [],
     this.labels = const {},
     this.portBindingHost = '127.0.0.1',
-    this.waitStrategy = const NoWaitStrategy(),
+    this.waitStrategy = const Wait.forNothing(),
   });
 
   final String image;
@@ -50,7 +50,7 @@ class ContainerConfig {
   final List<BindMount> mounts;
   final Map<String, String> labels;
   final String portBindingHost;
-  final WaitStrategy waitStrategy;
+  final Wait waitStrategy;
 
   void validate() {
     if (image.trim().isEmpty || image.contains('\u0000')) {

@@ -187,6 +187,69 @@ void main() {
       },
     );
 
+    test('exec rejects incomplete Docker command results', () async {
+      var result = <String, dynamic>{'Running': true, 'ExitCode': 0};
+      server.handler = (request) async {
+        if (request.uri.path.endsWith('/container-1/exec')) {
+          await DockerServer.respond(request, {'Id': 'exec-1'}, status: 201);
+        } else if (request.uri.path.endsWith('/exec/exec-1/start')) {
+          await DockerServer.respond(
+            request,
+            'output',
+            contentType: 'application/vnd.docker.raw-stream',
+          );
+        } else if (request.uri.path.endsWith('/exec/exec-1/json')) {
+          await DockerServer.respond(request, result);
+        } else {
+          return false;
+        }
+        return true;
+      };
+      await connect();
+      final container = await provider.start(
+        const ContainerConfig(image: 'redis'),
+      );
+      await expectLater(container.exec(['echo']), throwsStateError);
+      result = {'Running': false};
+      await expectLater(container.exec(['echo']), throwsStateError);
+    });
+
+    test('Testcontainers.run closes its provider after failed startup', () async {
+      final disconnected = Completer<void>();
+      Socket? connection;
+      addTearDown(() => connection?.destroy());
+      server.handler = (request) async {
+        if (!request.uri.path.endsWith('/images/create')) return false;
+        const body = '{"message":"pull denied"}';
+        request.response
+          ..statusCode = 403
+          ..contentLength = utf8.encode(body).length;
+        // Observe client EOF without closing the server side of the connection.
+        final socket = await request.response.detachSocket();
+        connection = socket;
+        socket.listen((_) {}, onDone: disconnected.complete);
+        socket.write(body);
+        await socket.flush();
+        return true;
+      };
+      await expectLater(
+        Testcontainers.run(
+          const ContainerConfig(image: 'private/image'),
+          config: DockerConfig(endpoint: server.endpoint),
+          ryuk: const RyukConfig(enabled: false),
+        ),
+        throwsA(
+          isA<DockerException>().having(
+            (e) => e.message,
+            'message',
+            'pull denied',
+          ),
+        ),
+      );
+      expect(server.paths, ['/version', '/v1.53/images/create']);
+      await disconnected.future.timeout(const Duration(seconds: 3));
+    });
+
     test('propagates real HTTP errors with Docker messages', () async {
       server.handler = (request) async {
         if (!request.uri.path.endsWith('/images/create')) return false;

@@ -60,8 +60,6 @@ class _TextSink extends StringConversionSinkBase {
   _TextSink(this.write);
   final void Function(String) write;
   @override
-  void add(String str) => write(str);
-  @override
   void addSlice(String chunk, int start, int end, bool isLast) {
     write(chunk.substring(start, end));
     if (isLast) close();

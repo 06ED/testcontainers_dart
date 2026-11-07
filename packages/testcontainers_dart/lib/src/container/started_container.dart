@@ -26,10 +26,10 @@ class StartedContainer {
   Future<Map<String, dynamic>> inspect() async {
     final response = await _api.containersIdJsonGet(id: id);
     checkResponse(response);
-    final text = responseText(response);
-    return text.isEmpty
-        ? response.body!.toJson()
-        : jsonDecode(text) as Map<String, dynamic>;
+    final base = response.base;
+    return base is http.Response && base.bodyBytes.isNotEmpty
+        ? jsonDecode(responseText(response)) as Map<String, dynamic>
+        : response.body!.toJson();
   }
 
   Future<int> mappedPort(int port, {String protocol = 'tcp'}) async {

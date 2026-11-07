@@ -1,5 +1,8 @@
 ## Unreleased
 
+- **Breaking:** Rename the readiness interface from `WaitStrategy` to `Wait` and
+  move the `Wait.for...` helpers into factory constructors on that interface.
+- Split readiness strategies into separate files with a shared wait export.
 - Handle Ryuk socket write errors during connection retries without unhandled
   asynchronous exceptions.
 - Add default-on, per-provider Ryuk sessions for crash cleanup, with reserved

@@ -21,7 +21,7 @@ jobs:
       matrix:
         include:
           - package: docker_engine
-            min_coverage: 80
+            min_coverage: 95
             analyze_directories: lib test
           - package: testcontainers_dart
             min_coverage: 95
@@ -33,7 +33,7 @@ jobs:
       platform: vm
       analyze_directories: ${{ matrix.analyze_directories }}
       collect_coverage_from: all
-      coverage_excludes: '**/src/generated/**'
+      coverage_excludes: "**/src/generated/**"
       min_coverage: ${{ matrix.min_coverage }}
       test_optimization: false
       artifact_name: coverage-${{ matrix.package }}
@@ -48,7 +48,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1.8.1
         with:
-          sdk: '3.11.3'
+          sdk: "3.11.3"
       - run: dart pub get --enforce-lockfile
       - run: dart analyze --fatal-infos --fatal-warnings
       - run: dart test packages/docker_engine/test packages/testcontainers_dart/test

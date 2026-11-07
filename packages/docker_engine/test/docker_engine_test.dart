@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -44,11 +45,19 @@ void main() {
     late HttpServer server;
     var apiVersion = '1.56';
     var graphDriver = <String, dynamic>{};
+    Future<bool> Function(HttpRequest)? handler;
 
     setUp(() async {
       apiVersion = '1.56';
+      handler = null;
       server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-      serve(server, () => apiVersion, graphDriver: () => graphDriver);
+      serve(
+        server,
+        () => apiVersion,
+        graphDriver: () => graphDriver,
+        handler: (request) async =>
+            handler == null ? false : await handler!(request),
+      );
     });
     tearDown(() => server.close(force: true));
 
@@ -59,10 +68,12 @@ void main() {
     test('negotiates API and exposes generated methods and models', () async {
       final connection = await connect();
       addTearDown(connection.close);
+
       expect(connection.api.client.baseUrl.path, '/v1.53');
       final response = await connection.api.containersCreatePost(
         body: {'Image': 'busybox:1.37'},
       );
+
       checkResponse(response);
       expect(response.body, isA<ContainerCreateResponse>());
       expect(response.body!.id, 'standalone-1');
@@ -72,8 +83,103 @@ void main() {
       apiVersion = '1.45';
       final connection = await connect();
       addTearDown(connection.close);
+
       expect(connection.api.client.baseUrl.path, '/v1.45');
     });
+
+    for (final version in ['1.40', 'invalid']) {
+      test('rejects unsupported or malformed daemon API $version', () async {
+        apiVersion = version;
+        await expectLater(
+          connect(),
+          version == 'invalid' ? throwsFormatException : throwsUnsupportedError,
+        );
+      });
+    }
+
+    test('rejects a minimum API newer than the supported maximum', () async {
+      handler = (request) async {
+        request.response.write('{"ApiVersion":"1.60","MinAPIVersion":"1.54"}');
+        await request.response.close();
+        return true;
+      };
+      await expectLater(connect(), throwsUnsupportedError);
+    });
+
+    test(
+      'reports daemon discovery HTTP errors without following redirects',
+      () async {
+        handler = (request) async {
+          request.response.statusCode = 302;
+          request.response.headers.set(
+            HttpHeaders.locationHeader,
+            '/redirected',
+          );
+          request.response.write('unexpected redirect');
+          await request.response.close();
+          return true;
+        };
+        await expectLater(
+          connect(),
+          throwsA(
+            isA<DockerException>()
+                .having((e) => e.statusCode, 'status', 302)
+                .having((e) => e.message, 'message', 'unexpected redirect'),
+          ),
+        );
+      },
+    );
+
+    test(
+      'preserves a pull response as NDJSON instead of decoding a single JSON value',
+      () async {
+        handler = (request) async {
+          if (!request.uri.path.endsWith('/images/create')) return false;
+          request.response.write('{"status":"Pulling"}\n{"status":"Done"}\n');
+          await request.response.close();
+          return true;
+        };
+        final connection = await connect();
+        addTearDown(connection.close);
+        final response = await connection.api.imagesCreatePost(
+          fromImage: 'redis',
+        );
+        checkResponse(response);
+        expect(
+          responseText(response),
+          '{"status":"Pulling"}\n{"status":"Done"}\n',
+        );
+      },
+    );
+
+    for (final partialBody in [false, true]) {
+      test(
+        'times out a stalled ${partialBody ? 'body' : 'response'}',
+        () async {
+          handler = (request) async {
+            if (partialBody) {
+              request.response.write('{');
+              await request.response.flush();
+            }
+            return true;
+          };
+          const timeout = Duration(milliseconds: 200);
+          await expectLater(
+            DockerConnection.connect(
+              DockerConfig(
+                endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+                requestTimeout: timeout,
+              ),
+            ),
+            throwsA(
+              isA<TimeoutException>()
+                  .having((e) => e.duration, 'timeout', timeout)
+                  .having((e) => e.message, 'request', contains('/version')),
+            ),
+          );
+        },
+      );
+    }
 
     for (final data in [
       null,
@@ -145,10 +251,12 @@ void serve(
   HttpServer server,
   String Function() apiVersion, {
   Map<String, dynamic> Function()? graphDriver,
+  Future<bool> Function(HttpRequest)? handler,
 }) {
   server.listen((request) async {
     await request.drain<void>();
     request.response.headers.contentType = ContentType.json;
+    if (handler != null && await handler(request)) return;
     if (request.uri.path == '/version') {
       request.response.write(
         jsonEncode({'ApiVersion': apiVersion(), 'MinAPIVersion': '1.41'}),

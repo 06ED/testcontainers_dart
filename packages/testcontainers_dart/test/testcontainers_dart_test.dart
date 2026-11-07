@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:chopper/chopper.dart';
 import 'package:docker_engine/docker_engine.dart'
@@ -75,6 +76,130 @@ void main() {
     when(() => api.containersJsonGet(all: any(named: 'all'))).thenAnswer(
       (_) async =>
           response<List<ContainerSummary>>(200, const <ContainerSummary>[]),
+    );
+  });
+
+  group('StartedContainer', () {
+    late StartedContainer container;
+    setUp(() {
+      container = StartedContainer(
+        api: api,
+        id: 'container-1',
+        image: 'redis',
+        host: 'localhost',
+      );
+    });
+
+    test(
+      'inspect falls back to a typed response when there are no raw bytes',
+      () async {
+        const info = ContainerInspectResponse(
+          id: 'container-1',
+          state: ContainerState(running: true),
+        );
+        when(
+          () => api.containersIdJsonGet(id: 'container-1'),
+        ).thenAnswer((_) async => response(200, info));
+        expect(await container.inspect(), info.toJson());
+      },
+    );
+
+    test(
+      'inspect preserves raw fields unknown to the generated model',
+      () async {
+        when(() => api.containersIdJsonGet(id: 'container-1')).thenAnswer(
+          (_) async => response(
+            200,
+            const ContainerInspectResponse(id: 'container-1'),
+            rawBody: '{"Id":"container-1","FutureField":42}',
+          ),
+        );
+        expect(await container.inspect(), {
+          'Id': 'container-1',
+          'FutureField': 42,
+        });
+      },
+    );
+
+    test(
+      'mapped ports reject invalid protocols and invalid host bindings',
+      () async {
+        await expectLater(
+          container.mappedPort(6379, protocol: 'sctp'),
+          throwsArgumentError,
+        );
+        for (final port in ['invalid', '0', '65536']) {
+          when(() => api.containersIdJsonGet(id: 'container-1')).thenAnswer(
+            (_) async => response(
+              200,
+              const ContainerInspectResponse(),
+              rawBody: jsonEncode({
+                'NetworkSettings': {
+                  'Ports': {
+                    '6379/tcp': [
+                      {'HostPort': port},
+                    ],
+                  },
+                },
+              }),
+            ),
+          );
+          await expectLater(
+            container.mappedPort(6379),
+            throwsA(
+              isA<StateError>().having(
+                (e) => e.message,
+                'message',
+                contains('Invalid host port'),
+              ),
+            ),
+          );
+        }
+      },
+    );
+
+    test(
+      'exec rejects empty commands and NUL arguments before calling Docker',
+      () async {
+        await expectLater(container.exec([]), throwsArgumentError);
+        await expectLater(
+          container.exec(['echo', '\u0000']),
+          throwsArgumentError,
+        );
+        verifyNever(
+          () => api.containersIdExecPost(
+            id: any(named: 'id'),
+            execConfig: any(named: 'execConfig'),
+          ),
+        );
+      },
+    );
+  });
+
+  test('exceptions describe the container, logs and cleanup failures', () {
+    expect(
+      const ContainerExitedException('container-1', 42).toString(),
+      allOf(contains('container-1'), contains('42')),
+    );
+    final cause = StateError('startup failed');
+    final cleanup = StateError('removal failed');
+    expect(
+      ContainerStartException(cause, containerId: 'container-1').toString(),
+      allOf(contains('container-1'), contains('startup failed')),
+    );
+    expect(
+      ContainerStartException(
+        cause,
+        containerId: 'container-1',
+        logs: 'recent logs',
+        cleanupError: cleanup,
+      ).toString(),
+      allOf(
+        contains('container-1'),
+        contains('startup failed'),
+        contains('recent logs'),
+        contains('removal failed'),
+      ),
     );
   });
 
@@ -474,7 +599,7 @@ Response<T> response<T>(int statusCode, T? body, {String rawBody = ''}) {
   return Response<T>(http.Response(rawBody, statusCode), body);
 }
 
-class FailingWait implements WaitStrategy {
+class FailingWait implements Wait {
   @override
   Future<void> waitUntilReady(StartedContainer container) async {
     throw StateError('not ready');

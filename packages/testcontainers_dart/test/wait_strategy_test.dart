@@ -3,7 +3,14 @@ import 'dart:io';
 
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
-import 'package:testcontainers_dart/testcontainers_dart.dart';
+import 'package:testcontainers_dart/src/wait/wait.dart';
+import 'package:testcontainers_dart/testcontainers_dart.dart'
+    show
+        StartedContainer,
+        ContainerConfig,
+        ExecResult,
+        WaitTimeoutException,
+        ContainerExitedException;
 
 class MockContainer extends Mock implements StartedContainer {}
 
@@ -27,6 +34,21 @@ void main() {
     await Wait.forNothing().waitUntilReady(container);
     verifyNever(container.inspect);
   });
+
+  test(
+    'wait factories support const defaults and inferred constructors',
+    () async {
+      const config = ContainerConfig(
+        image: 'redis',
+        waitStrategy: .forNothing(),
+      );
+      final Wait strategy = .forAll([.forNothing(), config.waitStrategy]);
+
+      await strategy.waitUntilReady(container);
+
+      verifyNever(container.inspect);
+    },
+  );
 
   test('log wait retries until the required occurrence count', () async {
     var calls = 0;

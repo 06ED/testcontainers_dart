@@ -17,9 +17,9 @@ void main() {
             'mkdir -p /www; echo ready >/www/index.html; echo ready; exec httpd -f -p 8080 -h /www',
           ],
           exposedPorts: const [Port.tcp(8080)],
-          waitStrategy: Wait.forAll([
-            Wait.forLogMessage('ready'),
-            Wait.forHttp(port: 8080),
+          waitStrategy: .forAll([
+            .forLogMessage('ready'),
+            .forHttp(port: 8080),
           ]),
         ),
       );
