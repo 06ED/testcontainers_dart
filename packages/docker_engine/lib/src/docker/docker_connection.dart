@@ -77,6 +77,18 @@ class DockerConnection {
 
 class _DockerConverter extends $JsonSerializableConverter {
   @override
+  FutureOr<Response> decodeJson<BodyType, InnerType>(Response response) async {
+    final decoded = await super.decodeJson<BodyType, InnerType>(response);
+    final body = decoded.body;
+    final driver = body is Map<String, dynamic> ? body['GraphDriver'] : null;
+    // Docker may return null driver metadata despite the schema requiring a map.
+    if (driver is Map<String, dynamic> && driver['Data'] == null) {
+      driver['Data'] = <String, dynamic>{};
+    }
+    return decoded;
+  }
+
+  @override
   FutureOr<Response<ResultType>> convertResponse<ResultType, Item>(
     Response response,
   ) {

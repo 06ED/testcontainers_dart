@@ -167,6 +167,8 @@ class RyukSession {
       socket.destroy();
     }
 
+    // Read-stream errors and write-sink errors are reported independently.
+    unawaited(socket.done.then<void>((_) {}, onError: lost));
     socket.listen(
       (bytes) {
         if (ack.isCompleted) return;

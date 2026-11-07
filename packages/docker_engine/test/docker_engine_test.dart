@@ -43,11 +43,12 @@ void main() {
   group('standalone Docker connection', () {
     late HttpServer server;
     var apiVersion = '1.56';
+    var graphDriver = <String, dynamic>{};
 
     setUp(() async {
       apiVersion = '1.56';
       server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-      serve(server, () => apiVersion);
+      serve(server, () => apiVersion, graphDriver: () => graphDriver);
     });
     tearDown(() => server.close(force: true));
 
@@ -72,6 +73,32 @@ void main() {
       final connection = await connect();
       addTearDown(connection.close);
       expect(connection.api.client.baseUrl.path, '/v1.45');
+    });
+
+    for (final data in [
+      null,
+      <String, dynamic>{'UpperDir': '/var/lib/docker/upper'},
+    ]) {
+      test('inspect accepts storage driver Data=$data', () async {
+        graphDriver = {'Name': 'overlay2', 'Data': data};
+        final connection = await connect();
+        addTearDown(connection.close);
+        final response = await connection.api.containersIdJsonGet(
+          id: 'existing',
+        );
+        checkResponse(response);
+        expect(response.body!.graphDriver!.data, data ?? <String, dynamic>{});
+        expect(jsonDecode(responseText(response))['GraphDriver']['Data'], data);
+      });
+    }
+
+    test('inspect accepts missing storage driver Data', () async {
+      graphDriver = {'Name': 'overlay2'};
+      final connection = await connect();
+      addTearDown(connection.close);
+      final response = await connection.api.containersIdJsonGet(id: 'existing');
+      checkResponse(response);
+      expect(response.body!.graphDriver!.data, isEmpty);
     });
 
     test('Docker errors belong to the standalone package', () async {
@@ -114,7 +141,11 @@ void main() {
   }, skip: Platform.isWindows);
 }
 
-void serve(HttpServer server, String Function() apiVersion) {
+void serve(
+  HttpServer server,
+  String Function() apiVersion, {
+  Map<String, dynamic> Function()? graphDriver,
+}) {
   server.listen((request) async {
     await request.drain<void>();
     request.response.headers.contentType = ContentType.json;
@@ -126,6 +157,10 @@ void serve(HttpServer server, String Function() apiVersion) {
       request.response.statusCode = 201;
       request.response.write(
         jsonEncode({'Id': 'standalone-1', 'Warnings': []}),
+      );
+    } else if (request.uri.path.endsWith('/containers/existing/json')) {
+      request.response.write(
+        jsonEncode({'Id': 'existing', 'GraphDriver': graphDriver!()}),
       );
     } else {
       request.response.statusCode = 404;

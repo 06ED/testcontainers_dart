@@ -43,6 +43,7 @@ void main() {
     late Completer<void> disconnected;
     late List<Socket> clients;
     late void Function(Socket) acknowledge;
+    late bool Function() rejectConnection;
     var creates = 0;
 
     setUp(() async {
@@ -53,8 +54,13 @@ void main() {
       clients = [];
       creates = 0;
       acknowledge = (socket) => socket.write('ACK\n');
+      rejectConnection = () => false;
       server.listen((socket) {
         clients.add(socket);
+        if (rejectConnection()) {
+          socket.destroy();
+          return;
+        }
         socket
             .cast<List<int>>()
             .transform(utf8.decoder)
@@ -406,6 +412,17 @@ void main() {
       );
       expect(docker.paths, hasLength(count));
     });
+
+    test(
+      'retries a connection reset before writing the session filter without unhandled sink errors',
+      () async {
+        var connections = 0;
+        rejectConnection = () => ++connections == 1;
+        await provider.start(const ContainerConfig(image: 'redis'));
+        expect(connections, 2);
+        expect(creates, 1);
+      },
+    );
 
     test(
       'close during handshake cancels startup without user resources',

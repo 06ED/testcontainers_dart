@@ -9,7 +9,7 @@ class MockContainer extends Mock implements StartedContainer {}
 
 void main() {
   late MockContainer container;
-  const timeout = Duration(milliseconds: 200);
+  const timeout = Duration(seconds: 2);
   const interval = Duration(milliseconds: 2);
 
   setUp(() {

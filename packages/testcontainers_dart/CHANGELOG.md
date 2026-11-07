@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Handle Ryuk socket write errors during connection retries without unhandled
+  asynchronous exceptions.
 - Add default-on, per-provider Ryuk sessions for crash cleanup, with reserved
   session labels, acknowledged filter registration and configurable image,
   daemon socket, port binding and connection timeout.
