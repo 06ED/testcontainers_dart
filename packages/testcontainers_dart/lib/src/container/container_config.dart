@@ -1,4 +1,5 @@
 import '../wait/wait.dart';
+import 'pull_policy.dart';
 
 class Port {
   const new tcp(this.number) : protocol = 'tcp';
@@ -25,6 +26,7 @@ class const BindMount({
 
 class const ContainerConfig({
   required final String image,
+  final PullPolicy pullPolicy = .ifNotPresent,
   final String? name,
   final Map<String, String> environment = const {},
   final List<String>? command,

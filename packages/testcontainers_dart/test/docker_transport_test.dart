@@ -85,13 +85,14 @@ void main() {
         await container.terminate();
         expect(server.paths, [
           '/version',
+          '/v1.53/images/redis:7-alpine/json',
           '/v1.53/images/create',
           '/v1.53/containers/create',
           '/v1.53/containers/container-1/start',
           '/v1.53/containers/container-1/json',
           '/v1.53/containers/container-1',
         ]);
-        expect(jsonDecode(server.bodies[2])['Image'], 'redis:7-alpine');
+        expect(jsonDecode(server.bodies[3])['Image'], 'redis:7-alpine');
       },
     );
 
@@ -99,7 +100,8 @@ void main() {
       server.apiVersion = '1.45';
       await connect();
       await provider.start(const ContainerConfig(image: 'redis'));
-      expect(server.paths[1], '/v1.45/images/create');
+      expect(server.paths[1], '/v1.45/images/redis/json');
+      expect(server.paths[2], '/v1.45/images/create');
     });
 
     test('rejects malformed API version', () async {
@@ -229,7 +231,7 @@ void main() {
       expect(result.exitCode, 7);
       expect(result.stdout, 'hello');
       expect(result.stderr, 'bad');
-      final body = jsonDecode(server.bodies[4]);
+      final body = jsonDecode(server.bodies[5]);
       expect(body['Cmd'], ['sh', '-c', 'echo hello; exit 7']);
       expect(body['Tty'], false);
     });
@@ -293,7 +295,11 @@ void main() {
           ),
         ),
       );
-      expect(server.paths, ['/version', '/v1.53/images/create']);
+      expect(server.paths, [
+        '/version',
+        '/v1.53/images/private/image/json',
+        '/v1.53/images/create',
+      ]);
       await disconnected.future.timeout(const Duration(seconds: 3));
     });
 

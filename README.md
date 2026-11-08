@@ -47,8 +47,8 @@ final container = await Testcontainers.run(config);
 addTearDown(container.terminate);
 ```
 
-Images are pulled on startup. An omitted tag means `latest`; prefer an explicit
-version for reproducible tests.
+Images are pulled only when missing from the local Docker daemon by default.
+An omitted tag means `latest`; prefer an explicit version for reproducible tests.
 
 ## Container configuration
 
@@ -74,6 +74,28 @@ Bind mounts use `BindMount(source: '/absolute/path', target: '/container/path')`
 and are read-only unless `readOnly: false` is set. Source paths must exist on the
 **Docker daemon's host**, not necessarily the machine running your tests.
 The `org.testcontainers` label namespace is reserved.
+
+### Image pull policy
+
+`ContainerConfig.pullPolicy` and `RyukConfig.pullPolicy` default to
+`PullPolicy.ifNotPresent`:
+
+- `ifNotPresent`: use the local image; pull only when Docker reports it missing.
+- `always`: pull on every startup, even when the image is already cached.
+- `never`: require a local image; fail without pulling if it is missing.
+
+```dart
+final container = await Testcontainers.run(
+  const ContainerConfig(image: 'my-local-app:test', pullPolicy: .never),
+  ryuk: const RyukConfig(pullPolicy: .never),
+);
+```
+
+Local images are those on the **Docker daemon's host**, including locally built
+images. A cached application image and Ryuk image allow startup without registry
+access. `ifNotPresent` does not check for updated tags; use `always` to refresh them.
+For `ifNotPresent`, only an image-inspect 404 triggers a pull; permission, daemon
+and connection errors are propagated instead of falling back to the registry.
 
 ## Waiting for readiness
 
@@ -233,7 +255,7 @@ disabled, closing a provider does not remove containers.
 | `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` | Docker socket path on the daemon's host; default `/var/run/docker.sock` |
 
 An explicit `RyukConfig` takes precedence over these environment variables. It
-also accepts `image`, `socketPath`, `portBindingHost` and `startupTimeout`.
+also accepts `image`, `pullPolicy`, `socketPath`, `portBindingHost` and `startupTimeout`.
 `startupTimeout` bounds the connection wait; Docker API calls and image pulls use
 `DockerConfig.requestTimeout` (default two minutes). If the cleanup connection is
 lost, containers may be removed and new starts on that provider fail; create a

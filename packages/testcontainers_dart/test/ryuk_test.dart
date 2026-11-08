@@ -19,6 +19,7 @@ void main() {
     expect(config.enabled, false);
     expect(config.socketPath, '/run/docker.sock');
     expect(config.image, 'mirror/ryuk:0.14.0');
+    expect(config.pullPolicy, PullPolicy.ifNotPresent);
     expect(RyukConfig.fromEnvironment({}).enabled, true);
 
     for (final config in [
@@ -223,6 +224,66 @@ void main() {
       await disconnected.future.timeout(const Duration(seconds: 1));
     });
 
+    for (final policy in PullPolicy.values) {
+      for (final present in [false, true]) {
+        test('Ryuk respects $policy (local image: $present)', () async {
+          provider.close();
+          provider = await DockerProvider.connect(
+            config: DockerConfig(endpoint: docker.endpoint),
+            ryuk: RyukConfig(pullPolicy: policy),
+          );
+          final handler = docker.handler!;
+          final pulled = <String>[];
+          docker.handler = (request) async {
+            final path = request.uri.path;
+            if (path.contains('/images/') && path.endsWith('/json')) {
+              final available =
+                  !path.contains('testcontainers/ryuk:0.14.0') || present;
+              await DockerServer.respond(
+                request,
+                <String, dynamic>{},
+                status: available ? 200 : 404,
+              );
+              return true;
+            }
+            if (path.endsWith('/images/create')) {
+              pulled.add(request.uri.queryParameters['fromImage']!);
+            }
+            return handler(request);
+          };
+          final started = provider.start(
+            const ContainerConfig(image: 'redis', pullPolicy: .never),
+          );
+          if (policy == .never && !present) {
+            await expectLater(
+              started,
+              throwsA(
+                isA<ContainerStartException>().having(
+                  (e) => e.cause,
+                  'cause',
+                  isA<DockerException>().having(
+                    (e) => e.statusCode,
+                    'status',
+                    404,
+                  ),
+                ),
+              ),
+            );
+            expect(bodies(), isEmpty);
+          } else {
+            await started;
+            expect(bodies(), hasLength(2));
+          }
+          expect(
+            pulled,
+            policy == .always || policy == .ifNotPresent && !present
+                ? ['testcontainers/ryuk:0.14.0']
+                : isEmpty,
+          );
+        });
+      }
+    }
+
     test('rejects reserved labels before any Docker operation', () async {
       await expectLater(
         provider.start(
@@ -236,12 +297,20 @@ void main() {
       expect(docker.paths, ['/version']);
     });
 
-    for (final stage in ['pull', 'create', 'start', 'inspect']) {
+    for (final stage in [
+      'image inspect',
+      'pull',
+      'create',
+      'start',
+      'inspect',
+    ]) {
       test('Ryuk $stage failure never starts a user container', () async {
         final handler = docker.handler!;
         docker.handler = (request) async {
           final path = request.uri.path;
           final failed = switch (stage) {
+            'image inspect' =>
+              path.contains('/images/') && path.endsWith('/json'),
             'pull' => path.endsWith('/images/create'),
             'create' => path.endsWith('/containers/create'),
             'start' => path.endsWith('/ryuk-1/start'),
@@ -258,6 +327,12 @@ void main() {
           throwsA(isA<ContainerStartException>()),
         );
         expect(bodies().where((body) => body['Image'] == 'redis'), isEmpty);
+        if (stage == 'image inspect') {
+          expect(
+            docker.paths.where((path) => path.endsWith('/images/create')),
+            isEmpty,
+          );
+        }
         if (stage == 'start' || stage == 'inspect') {
           expect(docker.paths, contains('/v1.53/containers/ryuk-1'));
         }

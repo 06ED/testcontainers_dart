@@ -1,8 +1,11 @@
 import 'dart:io';
 
+import '../container/pull_policy.dart';
+
 class const RyukConfig({
   final bool enabled = true,
   final String image = 'testcontainers/ryuk:0.14.0',
+  final PullPolicy pullPolicy = .ifNotPresent,
 
   /// Socket path on the Docker daemon's host, not the client machine.
   final String socketPath = '/var/run/docker.sock',

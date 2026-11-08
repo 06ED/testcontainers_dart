@@ -2,7 +2,21 @@ import 'dart:convert';
 
 import 'package:docker_engine/docker_engine.dart';
 
-Future<void> pullImage(Docker api, String image) async {
+import 'pull_policy.dart';
+
+Future<void> pullImage(
+  Docker api,
+  String image, {
+  required PullPolicy policy,
+}) async {
+  if (policy != .always) {
+    final inspected = await api.imagesNameJsonGet(name: image);
+    if (inspected.isSuccessful) return;
+    if (policy == .never || inspected.statusCode != 404) {
+      checkResponse(inspected);
+    }
+  }
+
   final tagged =
       image.contains('@') || image.lastIndexOf(':') > image.lastIndexOf('/');
 

@@ -8,7 +8,8 @@ import 'package:docker_engine/docker_engine.dart'
         ContainerInspectResponse,
         ContainerState,
         ContainerSummary,
-        Docker;
+        Docker,
+        ImageInspect;
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
@@ -21,6 +22,9 @@ void main() {
 
   setUp(() {
     api = MockDockerApi();
+
+    when(() => api.imagesNameJsonGet(name: any(named: 'name')))
+        .thenAnswer((_) async => response<ImageInspect>(404, null));
 
     when(() => api.imagesCreatePost(fromImage: any(named: 'fromImage')))
         .thenAnswer((_) async => response<dynamic>(200, null));
@@ -529,6 +533,7 @@ void main() {
       expect(container.image, 'redis:7-alpine');
 
       verifyInOrder(<void Function()>[
+        () => api.imagesNameJsonGet(name: 'redis:7-alpine'),
         () => api.imagesCreatePost(fromImage: 'redis:7-alpine'),
         () => api.containersCreatePost(name: null, body: any(named: 'body')),
         () => api.containersIdStartPost(id: 'container-1'),

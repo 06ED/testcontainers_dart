@@ -15,6 +15,10 @@ class DockerServer(final HttpServer server) {
           'ApiVersion': apiVersion,
           'MinAPIVersion': '1.41',
         });
+      } else if (path.contains('/images/') && path.endsWith('/json')) {
+        await respond(request, {
+          'message': 'No such image: $path',
+        }, status: 404);
       } else if (path.endsWith('/images/create')) {
         await respond(
           request,

@@ -85,7 +85,7 @@ class DockerProvider {
     }
 
     _checkActive();
-    await pullImage(_api, request.image);
+    await pullImage(_api, request.image, policy: request.pullPolicy);
     _checkActive();
     final created = await _api.containersCreatePost(
       name: request.name,

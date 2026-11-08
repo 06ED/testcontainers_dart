@@ -1,5 +1,8 @@
 ## Unreleased
 
+- **Breaking:** Default to `PullPolicy.ifNotPresent` for application and Ryuk
+  images instead of always pulling. Add `always` and `never` policies to both
+  configurations; inspect failures other than 404 are propagated without pulling.
 - Require Dart 3.13.7 and adopt primary constructors, `Future.pause` and typed
   unmodifiable list copies without changing container lifecycle behavior.
 - Remove the 1000-line readiness limit: log waits search all available history.

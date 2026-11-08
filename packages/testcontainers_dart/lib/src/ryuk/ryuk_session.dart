@@ -48,7 +48,7 @@ class RyukSession(
     var creating = false;
     try {
       _checkOpen();
-      await pullImage(api, config.image);
+      await pullImage(api, config.image, policy: config.pullPolicy);
       _checkOpen();
       final body = ContainerConfig(
         image: config.image,
