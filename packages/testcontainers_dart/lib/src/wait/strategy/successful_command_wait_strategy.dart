@@ -9,7 +9,7 @@ Wait createSuccessfulCommandWaitStrategy(
   if (command.isEmpty || command.any((arg) => arg.contains('\u0000'))) {
     throw ArgumentError('A command argument array without NUL is required');
   }
-  final args = List<String>.unmodifiable(command);
+  final args = List.unmodifiableOf(command);
   return PollingWait(
     'successful exec',
     (container, _, _) async => (await container.exec(args)).exitCode == 0,

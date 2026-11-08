@@ -1,39 +1,30 @@
 import 'dart:async';
 
-class WaitTimeoutException extends TimeoutException {
-  WaitTimeoutException(String strategy, Duration timeout, this.lastError)
+class WaitTimeoutException(
+  String strategy,
+  Duration timeout,
+  final Object? lastError,
+) extends TimeoutException {
+  this
     : super(
         'Timed out waiting for $strategy${lastError == null ? '' : ': $lastError'}',
         timeout,
       );
-
-  final Object? lastError;
 }
 
-class ContainerExitedException implements Exception {
-  const ContainerExitedException(this.id, this.exitCode);
-
-  final String id;
-  final int? exitCode;
-
+class const ContainerExitedException(final String id, final int? exitCode)
+    implements Exception {
   @override
   String toString() =>
       'Container $id exited before becoming ready (exit code: $exitCode)';
 }
 
-class ContainerStartException implements Exception {
-  const ContainerStartException(
-    this.cause, {
-    required this.containerId,
-    this.logs = '',
-    this.cleanupError,
-  });
-
-  final Object cause;
-  final String containerId;
-  final String logs;
-  final Object? cleanupError;
-
+class const ContainerStartException(
+  final Object cause, {
+  required final String containerId,
+  final String logs = '',
+  final Object? cleanupError,
+}) implements Exception {
   @override
   String toString() =>
       'ContainerStartException ($containerId): $cause'

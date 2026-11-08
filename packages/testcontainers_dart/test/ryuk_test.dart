@@ -174,57 +174,54 @@ void main() {
       );
     }
 
-    test(
-      'starts lazily, waits for split ACK and shares one session across concurrent starts',
-      () async {
-        expect(creates, 0);
-        final ack = Completer<Socket>();
-        acknowledge = ack.complete;
-        final labels = {'owner': 'test'};
-        final started = Future.wait([
-          provider.start(ContainerConfig(image: 'redis', labels: labels)),
-          provider.start(const ContainerConfig(image: 'redis')),
-        ]);
-        labels['owner'] = 'changed';
-        final socket = await ack.future;
-        expect(bodies(), hasLength(1));
-        socket.write('AC');
-        await socket.flush();
-        socket.write('K\n');
-        final containers = await started;
-        expect(creates, 1);
-        final requests = bodies();
-        final ryuk = requests.first;
-        expect(ryuk['HostConfig']['AutoRemove'], true);
-        expect(ryuk['HostConfig']['Privileged'], isNot(true));
-        expect(ryuk['HostConfig']['Mounts'], [
-          {
-            'Type': 'bind',
-            'Source': '/var/run/docker.sock',
-            'Target': '/var/run/docker.sock',
-            'ReadOnly': false,
-          },
-        ]);
-        expect(
-          ryuk['HostConfig']['PortBindings']['8080/tcp'][0]['HostIp'],
-          '127.0.0.1',
-        );
-        final session = requests[1]['Labels']['org.testcontainers.sessionId'];
-        expect(session, matches(RegExp(r'^[a-f0-9]{32}$')));
-        expect(requests[1]['Labels']['owner'], 'test');
-        expect(requests[2]['Labels']['org.testcontainers.sessionId'], session);
-        expect(requests[1]['Labels']['org.testcontainers'], 'true');
-        expect(
-          await filter.future,
-          'label=org.testcontainers.sessionId=$session',
-        );
-        await containers.first.terminate();
-        expect(disconnected.isCompleted, false);
-        provider.close();
-        provider.close();
-        await disconnected.future.timeout(const Duration(seconds: 1));
-      },
-    );
+    test('starts lazily, waits for split ACK and shares one session across concurrent starts', () async {
+      expect(creates, 0);
+      final ack = Completer<Socket>();
+      acknowledge = ack.complete;
+      final labels = {'owner': 'test'};
+      final started = Future.wait([
+        provider.start(ContainerConfig(image: 'redis', labels: labels)),
+        provider.start(const ContainerConfig(image: 'redis')),
+      ]);
+      labels['owner'] = 'changed';
+      final socket = await ack.future;
+      expect(bodies(), hasLength(1));
+      socket.write('AC');
+      await socket.flush();
+      socket.write('K\n');
+      final containers = await started;
+      expect(creates, 1);
+      final requests = bodies();
+      final ryuk = requests.first;
+      expect(ryuk['HostConfig']['AutoRemove'], true);
+      expect(ryuk['HostConfig']['Privileged'], isNot(true));
+      expect(ryuk['HostConfig']['Mounts'], [
+        {
+          'Type': 'bind',
+          'Source': '/var/run/docker.sock',
+          'Target': '/var/run/docker.sock',
+          'ReadOnly': false,
+        },
+      ]);
+      expect(
+        ryuk['HostConfig']['PortBindings']['8080/tcp'][0]['HostIp'],
+        '127.0.0.1',
+      );
+      final session = requests[1]['Labels']['org.testcontainers.sessionId'];
+      expect(session, matches(RegExp(r'^[a-f0-9]{32}$')));
+      expect(requests[1]['Labels']['owner'], 'test');
+      expect(requests[2]['Labels']['org.testcontainers.sessionId'], session);
+      expect(requests[1]['Labels']['org.testcontainers'], 'true');
+      expect(
+        await filter.future,
+        'label=org.testcontainers.sessionId=$session',
+      );
+      await containers.first.terminate();
+      expect(disconnected.isCompleted, false);
+      provider.close();
+      provider.close();
+      await disconnected.future.timeout(const Duration(seconds: 1));
+    });
 
     test('rejects reserved labels before any Docker operation', () async {
       await expectLater(
@@ -373,29 +370,26 @@ void main() {
       },
     );
 
-    test(
-      'user startup failure still removes that container and leaves shared Ryuk alive',
-      () async {
-        final handler = docker.handler!;
-        docker.handler = (request) async {
-          if (!request.uri.path.endsWith('/container-1/start')) {
-            return handler(request);
-          }
-          await DockerServer.respond(request, {
-            'message': 'cannot start',
-          }, status: 500);
-          return true;
-        };
-        await expectLater(
-          provider.start(const ContainerConfig(image: 'redis')),
-          throwsA(isA<ContainerStartException>()),
-        );
-        expect(docker.paths, contains('/v1.53/containers/container-1'));
-        expect(disconnected.isCompleted, false);
-        provider.close();
-        await disconnected.future.timeout(const Duration(seconds: 1));
-      },
-    );
+    test('user startup failure still removes that container and leaves shared Ryuk alive', () async {
+      final handler = docker.handler!;
+      docker.handler = (request) async {
+        if (!request.uri.path.endsWith('/container-1/start')) {
+          return handler(request);
+        }
+        await DockerServer.respond(request, {
+          'message': 'cannot start',
+        }, status: 500);
+        return true;
+      };
+      await expectLater(
+        provider.start(const ContainerConfig(image: 'redis')),
+        throwsA(isA<ContainerStartException>()),
+      );
+      expect(docker.paths, contains('/v1.53/containers/container-1'));
+      expect(disconnected.isCompleted, false);
+      provider.close();
+      await disconnected.future.timeout(const Duration(seconds: 1));
+    });
 
     test('close while pulling user image prevents a later create', () async {
       final pulling = Completer<void>();
@@ -453,7 +447,7 @@ void main() {
       await provider.start(const ContainerConfig(image: 'redis'));
       clients.single.destroy();
       // Let the client observe EOF before attempting another Docker operation.
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+      await Future.pause(const Duration(milliseconds: 30));
       final count = docker.paths.length;
       await expectLater(
         provider.start(const ContainerConfig(image: 'redis')),
@@ -462,16 +456,13 @@ void main() {
       expect(docker.paths, hasLength(count));
     });
 
-    test(
-      'retries a connection reset before writing the session filter without unhandled sink errors',
-      () async {
-        var connections = 0;
-        rejectConnection = () => ++connections == 1;
-        await provider.start(const ContainerConfig(image: 'redis'));
-        expect(connections, 2);
-        expect(creates, 1);
-      },
-    );
+    test('retries a connection reset before writing the session filter without unhandled sink errors', () async {
+      var connections = 0;
+      rejectConnection = () => ++connections == 1;
+      await provider.start(const ContainerConfig(image: 'redis'));
+      expect(connections, 2);
+      expect(creates, 1);
+    });
 
     test(
       'close during handshake cancels startup without user resources',

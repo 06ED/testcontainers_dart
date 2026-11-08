@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-class DockerServer {
-  DockerServer(this.server) {
+class DockerServer(final HttpServer server) {
+  this {
     server.listen((request) async {
       paths.add(request.uri.path);
       bodies.add(await utf8.decoder.bind(request).join());
@@ -49,7 +49,6 @@ class DockerServer {
     });
   }
 
-  final HttpServer server;
   final paths = <String>[];
   final bodies = <String>[];
   String apiVersion = '1.56';

@@ -35,7 +35,7 @@ void main() {
           if (!(await Future.wait(ids.map(exists))).any((value) => value)) {
             return;
           }
-          await Future<void>.delayed(const Duration(milliseconds: 200));
+          await Future.pause(const Duration(milliseconds: 200));
         }
         fail('Ryuk did not remove $ids');
       }
@@ -84,27 +84,21 @@ void main() {
         return (process: process, resource: resource, errors: errors);
       }
 
-      test(
-        'SIGKILL cleans its session but leaves a different live session untouched',
-        () async {
-          final victim = await launch('crash');
-          final survivor = await launch('crash');
-          expect(
-            victim.resource['session'],
-            isNot(survivor.resource['session']),
-          );
-          expect(await exists(victim.resource['id']), true);
-          expect(await exists(survivor.resource['id']), true);
-          victim.process.kill(ProcessSignal.sigkill);
-          await victim.process.exitCode;
-          await removed([victim.resource['id'], victim.resource['ryuk']]);
-          expect(await exists(survivor.resource['id']), true);
-          expect(await exists(survivor.resource['ryuk']), true);
-          survivor.process.kill(ProcessSignal.sigkill);
-          await survivor.process.exitCode;
-          await removed([survivor.resource['id'], survivor.resource['ryuk']]);
-        },
-      );
+      test('SIGKILL cleans its session but leaves a different live session untouched', () async {
+        final victim = await launch('crash');
+        final survivor = await launch('crash');
+        expect(victim.resource['session'], isNot(survivor.resource['session']));
+        expect(await exists(victim.resource['id']), true);
+        expect(await exists(survivor.resource['id']), true);
+        victim.process.kill(ProcessSignal.sigkill);
+        await victim.process.exitCode;
+        await removed([victim.resource['id'], victim.resource['ryuk']]);
+        expect(await exists(survivor.resource['id']), true);
+        expect(await exists(survivor.resource['ryuk']), true);
+        survivor.process.kill(ProcessSignal.sigkill);
+        await survivor.process.exitCode;
+        await removed([survivor.resource['id'], survivor.resource['ryuk']]);
+      });
 
       for (final mode in ['close', 'terminate', 'startup-failure']) {
         test(

@@ -2,17 +2,16 @@
 
 [![CI](https://img.shields.io/github/actions/workflow/status/06ED/testcontainers_dart/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/06ED/testcontainers_dart/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/06ED/testcontainers_dart/main?style=flat-square&label=coverage)](https://codecov.io/gh/06ED/testcontainers_dart)
-[![Dart SDK: ^3.11.3](https://img.shields.io/badge/Dart-%5E3.11.3-0175C2?style=flat-square&logo=dart&logoColor=white)](https://dart.dev/get-dart)
+[![Dart SDK: ^3.13.7](https://img.shields.io/badge/Dart-%5E3.13.7-0175C2?style=flat-square&logo=dart&logoColor=white)](https://dart.dev/get-dart)
 [![Docker required](https://img.shields.io/badge/Docker-required-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docs.docker.com/get-started/get-docker/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](https://github.com/06ED/testcontainers_dart/blob/main/LICENCE)
 ![Made with love](https://img.shields.io/badge/Made_with-%E2%9D%A4-ff4757?style=flat-square)
 
-Run disposable Docker containers in Dart integration tests. Configure a service,
-wait until it is ready, run your tests, and remove it when finished.
+Run disposable Docker containers in Dart.
 
 ## Installation
 
-Requires Dart **3.11.3+** and a running Docker daemon. The Docker CLI is not required.
+Requires Dart **3.13.7+** and a running Docker daemon. The Docker CLI is not required.
 
 ```sh
 dart pub add --dev testcontainers_dart
@@ -78,9 +77,6 @@ The `org.testcontainers` label namespace is reserved.
 
 ## Waiting for readiness
 
-Create a `Wait` using a named factory constructor. Where Dart can infer the type
-(such as `waitStrategy:`), the class name can be omitted:
-
 ```dart
 final config = ContainerConfig(
   image: 'nginx:1.28-alpine',
@@ -127,6 +123,43 @@ print(result.exitCode);
   `ContainerStartException` includes the cause, container ID, recent logs and
   any cleanup failure.
 
+### Live logs
+
+`logs()` returns a snapshot of the last 1000 lines by default; use
+`logs(tail: null)` for all available history. Use `logsStream()` to receive output while the
+container is running:
+
+```dart
+import 'dart:io';
+
+final subscription = container.logsStream(tail: 100).listen(
+  (chunk) {
+    final output = chunk.source == DockerLogSource.stdout ? stdout : stderr;
+    output.write(chunk.text);
+  },
+  onError: (Object error) => stderr.writeln(error),
+);
+
+try {
+  // Run your tests.
+} finally {
+  await subscription.cancel();
+}
+```
+
+- The request starts on subscription. `tail: 100` replays the last 100 lines
+  before following new output; `tail: 0` receives only new output.
+- Each `DockerLogChunk` contains a `source` and a `text` fragment, not necessarily
+  a complete line. UTF-8 characters are decoded across incoming chunks.
+- TTY containers combine stdout and stderr; their chunks use `DockerLogSource.stdout`.
+- Cancelling a subscription closes only that log request. Pausing it pauses
+  reading; silence does not trigger a timeout. The connection/header wait is
+  bounded by `DockerConfig.requestTimeout`.
+- Docker/network errors end the stream with an error. There is no automatic
+  reconnection. Normal EOF ends it without an error.
+- Closing a provider created by `DockerProvider.connect()` also aborts its active
+  log requests. With an injected Docker API, the caller owns the client's lifetime.
+
 ### Sharing a provider
 
 For several containers, share a `DockerProvider` and close it when finished:
@@ -153,10 +186,10 @@ cleanup. Always close shared providers to allow the Dart process to exit.
 
 Local Docker is detected automatically. Override connection settings with:
 
-| Environment variable | Purpose |
-| --- | --- |
-| `DOCKER_HOST` | Docker endpoint, e.g. `unix:///var/run/docker.sock` or `tcp://docker:2375` |
-| `TESTCONTAINERS_HOST_OVERRIDE` | Reachable address for published container ports |
+| Environment variable           | Purpose                                                                    |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| `DOCKER_HOST`                  | Docker endpoint, e.g. `unix:///var/run/docker.sock` or `tcp://docker:2375` |
+| `TESTCONTAINERS_HOST_OVERRIDE` | Reachable address for published container ports                            |
 
 Without `DOCKER_HOST`, the package checks `$HOME/.docker/run/docker.sock`, then
 `/var/run/docker.sock`. Docker CLI contexts are not read.
@@ -193,10 +226,10 @@ Pass `ryuk: const RyukConfig(enabled: false)` to `Testcontainers.run()` or
 `DockerProvider.connect()` only when cleanup is handled externally. With Ryuk
 disabled, closing a provider does not remove containers.
 
-| Environment variable | Purpose |
-| --- | --- |
-| `TESTCONTAINERS_RYUK_DISABLED` | `true` disables Ryuk; default `false` |
-| `TESTCONTAINERS_RYUK_CONTAINER_IMAGE` | Override the Ryuk image |
+| Environment variable                    | Purpose                                                                 |
+| --------------------------------------- | ----------------------------------------------------------------------- |
+| `TESTCONTAINERS_RYUK_DISABLED`          | `true` disables Ryuk; default `false`                                   |
+| `TESTCONTAINERS_RYUK_CONTAINER_IMAGE`   | Override the Ryuk image                                                 |
 | `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` | Docker socket path on the daemon's host; default `/var/run/docker.sock` |
 
 An explicit `RyukConfig` takes precedence over these environment variables. It
@@ -208,10 +241,10 @@ new provider.
 
 ## Packages and examples
 
-| Package | Purpose |
-| --- | --- |
+| Package                                                                                                     | Purpose                                             |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
 | [`testcontainers_dart`](https://github.com/06ED/testcontainers_dart/tree/main/packages/testcontainers_dart) | Disposable containers, readiness checks and cleanup |
-| [`docker_engine`](https://github.com/06ED/testcontainers_dart/tree/main/packages/docker_engine) | Standalone Docker Engine API client |
+| [`docker_engine`](https://github.com/06ED/testcontainers_dart/tree/main/packages/docker_engine)             | Standalone Docker Engine API client                 |
 
 A runnable example is available in
 [`examples/testcontainers`](https://github.com/06ED/testcontainers_dart/tree/main/examples/testcontainers).
@@ -226,7 +259,5 @@ dart run examples/testcontainers/bin/testcontainers_example.dart
 - No registry authentication, Docker client-certificate environment settings,
   SSH, Windows named pipes, Compose, image builds, file copy, network management
   or container reuse.
-- Logs and exec output are returned after the request completes, not as live
-  streams. Log readiness checks the most recent 1000 lines.
 - A readiness timeout does not cancel an already running exec command;
   startup-failure cleanup removes the container instead.

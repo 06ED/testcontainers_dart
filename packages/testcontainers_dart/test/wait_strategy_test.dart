@@ -12,7 +12,7 @@ import 'package:testcontainers_dart/testcontainers_dart.dart'
         WaitTimeoutException,
         ContainerExitedException;
 
-class MockContainer extends Mock implements StartedContainer {}
+class MockContainer() extends Mock implements StartedContainer;
 
 void main() {
   late MockContainer container;
@@ -52,9 +52,8 @@ void main() {
 
   test('log wait retries until the required occurrence count', () async {
     var calls = 0;
-    when(
-      () => container.logs(),
-    ).thenAnswer((_) async => ++calls == 1 ? 'ready' : 'ready\nready');
+    when(() => container.logs(tail: null))
+        .thenAnswer((_) async => ++calls == 1 ? 'ready' : 'ready\nready');
     await Wait.forLogMessage(
       'ready',
       times: 2,
@@ -65,14 +64,13 @@ void main() {
   });
 
   test('log wait accepts a regular expression', () async {
-    when(
-      () => container.logs(),
-    ).thenAnswer((_) async => 'Listening on port 8080');
+    when(() => container.logs(tail: null))
+        .thenAnswer((_) async => 'Listening on port 8080');
     await Wait.forLogMessage(RegExp(r'port \d+')).waitUntilReady(container);
   });
 
   test('timeout includes the strategy description', () async {
-    when(() => container.logs()).thenAnswer((_) async => 'starting');
+    when(() => container.logs(tail: null)).thenAnswer((_) async => 'starting');
     await expectLater(
       Wait.forLogMessage(
         'ready',
@@ -90,13 +88,11 @@ void main() {
   });
 
   test('timeout also bounds a hung inspect request', () async {
-    when(
-      container.inspect,
-    ).thenAnswer((_) => Completer<Map<String, dynamic>>().future);
+    when(container.inspect)
+        .thenAnswer((_) => Completer<Map<String, dynamic>>().future);
     await expectLater(
-      Wait.forHealthcheck(
-        timeout: const Duration(milliseconds: 20),
-      ).waitUntilReady(container),
+      Wait.forHealthcheck(timeout: const Duration(milliseconds: 20))
+          .waitUntilReady(container),
       throwsA(isA<WaitTimeoutException>()),
     );
   });
@@ -117,7 +113,7 @@ void main() {
         ),
       ),
     );
-    verifyNever(() => container.logs());
+    verifyNever(() => container.logs(tail: any(named: 'tail')));
   });
 
   test('healthcheck wait retries starting state', () async {
@@ -196,9 +192,8 @@ void main() {
         request.response.statusCode = ++calls == 1 ? 503 : 204;
         await request.response.close();
       });
-      when(
-        () => container.mappedPort(8080),
-      ).thenAnswer((_) async => server.port);
+      when(() => container.mappedPort(8080))
+          .thenAnswer((_) async => server.port);
       await Wait.forHttp(
         port: 8080,
         path: '/health',
@@ -225,12 +220,12 @@ void main() {
   });
 
   test('wait-all runs strategies in order', () async {
-    when(() => container.logs()).thenAnswer((_) async => 'ready');
+    when(() => container.logs(tail: null)).thenAnswer((_) async => 'ready');
     await Wait.forAll([
       Wait.forLogMessage('ready'),
       Wait.forLogMessage('ready'),
     ]).waitUntilReady(container);
-    verify(() => container.logs()).called(2);
+    verify(() => container.logs(tail: null)).called(2);
   });
 
   test('wait configuration is validated', () {

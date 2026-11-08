@@ -1,9 +1,7 @@
-class DockerException implements Exception {
-  const DockerException(this.message, {required this.statusCode});
-
-  final String message;
-  final int statusCode;
-
+class const DockerException(
+  final String message, {
+  required final int statusCode,
+}) implements Exception {
   @override
   String toString() => 'DockerException ($statusCode): $message';
 }

@@ -2,7 +2,7 @@ name: testcontainers_workspace
 publish_to: none
 
 environment:
-  sdk: ^3.11.3
+  sdk: ^3.13.7
 
 workspace:
   - packages/docker_engine

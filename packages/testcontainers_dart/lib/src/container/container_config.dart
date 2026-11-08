@@ -1,8 +1,8 @@
 import '../wait/wait.dart';
 
 class Port {
-  const Port.tcp(this.number) : protocol = 'tcp';
-  const Port.udp(this.number) : protocol = 'udp';
+  const new tcp(this.number) : protocol = 'tcp';
+  const new udp(this.number) : protocol = 'udp';
 
   final int number;
   final String protocol;
@@ -17,41 +17,23 @@ class Port {
   }
 }
 
-class BindMount {
-  const BindMount({
-    required this.source,
-    required this.target,
-    this.readOnly = true,
-  });
+class const BindMount({
+  required final String source,
+  required final String target,
+  final bool readOnly = true,
+});
 
-  final String source;
-  final String target;
-  final bool readOnly;
-}
-
-class ContainerConfig {
-  const ContainerConfig({
-    required this.image,
-    this.name,
-    this.environment = const {},
-    this.command,
-    this.exposedPorts = const [],
-    this.mounts = const [],
-    this.labels = const {},
-    this.portBindingHost = '127.0.0.1',
-    this.waitStrategy = const Wait.forNothing(),
-  });
-
-  final String image;
-  final String? name;
-  final Map<String, String> environment;
-  final List<String>? command;
-  final List<Port> exposedPorts;
-  final List<BindMount> mounts;
-  final Map<String, String> labels;
-  final String portBindingHost;
-  final Wait waitStrategy;
-
+class const ContainerConfig({
+  required final String image,
+  final String? name,
+  final Map<String, String> environment = const {},
+  final List<String>? command,
+  final List<Port> exposedPorts = const [],
+  final List<BindMount> mounts = const [],
+  final Map<String, String> labels = const {},
+  final String portBindingHost = '127.0.0.1',
+  final Wait waitStrategy = const Wait.forNothing(),
+}) {
   void validate() {
     if (image.trim().isEmpty || image.contains('\u0000')) {
       throw ArgumentError.value(image, 'image', 'An image is required');
@@ -96,7 +78,7 @@ class ContainerConfig {
     'Env': [
       for (final entry in environment.entries) '${entry.key}=${entry.value}',
     ],
-    if (command != null) 'Cmd': List<String>.of(command!),
+    if (command case final command?) 'Cmd': List.of(command),
 
     'Labels': Map<String, String>.of(labels),
     'ExposedPorts': {

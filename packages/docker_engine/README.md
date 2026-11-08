@@ -35,6 +35,14 @@ Future<void> main() async {
   `responseText(response)` reads response text without losing the raw response.
 - `decodeDockerOutput(bytes)` decodes Docker multiplexed output into
   `stdout`, `stderr` and `combined` strings, preserving UTF-8 across frames.
+- `connection.api.logsStream(id: id, tty: tty, tail: 100)` returns a live
+  `Stream<DockerLogChunk>` with separate stdout/stderr sources. Set `tty` from
+  the container's `Config.Tty`; TTY output is merged and reported as stdout.
+  Subscribe to start, cancel to abort only that request, or close the connection
+  to abort all its active log requests. `tail: 0` skips historical output.
+- `decodeDockerLogStream(bytes, tty: tty)` incrementally decodes raw output,
+  including split frame headers and UTF-8 characters. Events are text fragments,
+  not necessarily complete lines.
 - Generated `Docker` methods and response models are exported publicly. Prefix
   the import to avoid collisions between Docker model names and SDK types.
 
@@ -43,9 +51,12 @@ certificates. Client-certificate environment settings, SSH, named pipes, Docker 
 contexts and registry authentication are not implemented. Never expose unencrypted
 Docker TCP to untrusted networks.
 
-Responses are buffered and requests are bounded by `requestTimeout` (default two
-minutes). Pull uses NDJSON and exec/logs use Docker binary streams, so callers
-must handle application-level pull errors and decode output explicitly.
+Generated API responses are buffered and requests are bounded by `requestTimeout`
+(default two minutes). `logsStream` bypasses buffering; its timeout bounds headers
+and error responses, not the lifetime or idle time of a successful stream.
+Stream errors terminate the subscription without automatic reconnection.
+Pull uses NDJSON and generated exec/log methods return Docker binary streams,
+so callers must handle application-level pull errors and decode output explicitly.
 This package does not automatically create or clean up containers.
 
 ## Development

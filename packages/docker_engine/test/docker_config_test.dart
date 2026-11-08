@@ -40,9 +40,8 @@ void main() {
 
   test('discovers the Docker Desktop socket', () async {
     final home = await Directory.systemTemp.createTemp('de-');
-    final directory = await Directory(
-      '${home.path}/.docker/run',
-    ).create(recursive: true);
+    final directory = await Directory('${home.path}/.docker/run')
+        .create(recursive: true);
     final path = '${directory.path}/docker.sock';
     final socket = await ServerSocket.bind(
       InternetAddress(path, type: InternetAddressType.unix),

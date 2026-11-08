@@ -41,14 +41,14 @@ jobs:
       timeout_minutes: 15
 
   minimum-sdk:
-    name: Dart 3.11.3
+    name: Dart 3.13.7
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1.8.1
         with:
-          sdk: "3.11.3"
+          sdk: "3.13.7"
       - run: dart pub get --enforce-lockfile
       - run: dart analyze --fatal-infos --fatal-warnings
       - run: dart test packages/docker_engine/test packages/testcontainers_dart/test

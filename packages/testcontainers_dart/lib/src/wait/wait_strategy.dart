@@ -8,9 +8,9 @@ import 'strategy/no_wait_strategy.dart';
 import 'strategy/successful_command_wait_strategy.dart';
 
 abstract interface class Wait {
-  const factory Wait.forNothing() = NoWaitStrategy;
+  const factory forNothing() = NoWaitStrategy;
 
-  factory Wait.forLogMessage(
+  factory forLogMessage(
     Pattern message, {
     int times = 1,
     Duration timeout = const Duration(seconds: 60),
@@ -22,7 +22,7 @@ abstract interface class Wait {
     pollInterval: pollInterval,
   );
 
-  factory Wait.forListeningPort({
+  factory forListeningPort({
     required int port,
     Duration timeout = const Duration(seconds: 60),
     Duration pollInterval = const Duration(milliseconds: 100),
@@ -32,7 +32,7 @@ abstract interface class Wait {
     pollInterval: pollInterval,
   );
 
-  factory Wait.forHttp({
+  factory forHttp({
     required int port,
     String path = '/',
     int statusCode = 200,
@@ -46,7 +46,7 @@ abstract interface class Wait {
     pollInterval: pollInterval,
   );
 
-  factory Wait.forHealthcheck({
+  factory forHealthcheck({
     Duration timeout = const Duration(seconds: 60),
     Duration pollInterval = const Duration(milliseconds: 100),
   }) => createHealthcheckWaitStrategy(
@@ -54,7 +54,7 @@ abstract interface class Wait {
     pollInterval: pollInterval,
   );
 
-  factory Wait.forSuccessfulCommand(
+  factory forSuccessfulCommand(
     List<String> command, {
     Duration timeout = const Duration(seconds: 60),
     Duration pollInterval = const Duration(milliseconds: 100),
@@ -65,8 +65,8 @@ abstract interface class Wait {
   );
 
   /// Runs strategies sequentially, each with its own timeout.
-  factory Wait.forAll(List<Wait> strategies) =>
-      AllWaitStrategy(List.unmodifiable(strategies));
+  factory forAll(List<Wait> strategies) =>
+      AllWaitStrategy(List.unmodifiableOf(strategies));
 
   Future<void> waitUntilReady(StartedContainer container);
 }

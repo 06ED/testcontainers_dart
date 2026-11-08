@@ -1,9 +1,7 @@
 import '../../container/started_container.dart';
 import '../wait_strategy.dart';
 
-class NoWaitStrategy implements Wait {
-  const NoWaitStrategy();
-
+class const NoWaitStrategy() implements Wait {
   @override
   Future<void> waitUntilReady(StartedContainer container) async {}
 }

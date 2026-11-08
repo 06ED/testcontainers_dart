@@ -5,18 +5,18 @@ import '../../container/started_container.dart';
 import '../../errors/exceptions.dart';
 import '../wait_strategy.dart';
 
-class PollingWait implements Wait {
-  PollingWait(this.description, this.check, this.timeout, this.interval) {
+class PollingWait(
+  final String description,
+  final Future<bool> Function(StartedContainer, Map<String, dynamic>, Duration)
+  check,
+  final Duration timeout,
+  final Duration interval,
+) implements Wait {
+  this {
     if (timeout <= Duration.zero || interval <= Duration.zero) {
       throw ArgumentError('Timeout and poll interval must be positive');
     }
   }
-
-  final String description;
-  final Future<bool> Function(StartedContainer, Map<String, dynamic>, Duration)
-  check;
-  final Duration timeout;
-  final Duration interval;
 
   @override
   Future<void> waitUntilReady(StartedContainer container) async {
@@ -54,7 +54,7 @@ class PollingWait implements Wait {
 
       final remaining = timeout - clock.elapsed;
       if (remaining <= Duration.zero) break;
-      await Future<void>.delayed(interval < remaining ? interval : remaining);
+      await Future.pause(interval < remaining ? interval : remaining);
     }
 
     throw WaitTimeoutException(description, timeout, lastError);

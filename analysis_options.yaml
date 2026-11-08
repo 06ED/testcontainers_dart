@@ -2,9 +2,15 @@ include: package:lints/recommended.yaml
 
 linter:
   rules:
-     - prefer_relative_imports
-     - prefer_single_quotes
+    - empty_container_bodies
+    - initialize_in_field_declaration
+    - prefer_relative_imports
+    - prefer_single_quotes
+    - unnecessary_primary_constructor_body
+    - unnecessary_type_name_in_constructor
+    - use_declaring_parameters
+    - use_primary_constructors
 
 analyzer:
   exclude:
-     - packages/docker_engine/lib/src/generated/**
+    - packages/docker_engine/lib/src/generated/**

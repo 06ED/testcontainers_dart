@@ -1,15 +1,17 @@
 import 'dart:io';
 
-class DockerConfig {
-  DockerConfig({
-    required Uri endpoint,
-    String? host,
-    this.requestTimeout = const Duration(minutes: 2),
-  }) : endpoint = endpoint.scheme == 'tcp'
-           ? endpoint.replace(scheme: 'http')
-           : endpoint,
-       host =
-           host ?? (endpoint.scheme == 'unix' ? 'localhost' : endpoint.host) {
+class DockerConfig({
+  required Uri endpoint,
+  String? host,
+  final Duration requestTimeout = const Duration(minutes: 2),
+}) {
+  final Uri endpoint = endpoint.scheme == 'tcp'
+      ? endpoint.replace(scheme: 'http')
+      : endpoint;
+  final String host =
+      host ?? (endpoint.scheme == 'unix' ? 'localhost' : endpoint.host);
+
+  this {
     if (!{'unix', 'http', 'https'}.contains(this.endpoint.scheme)) {
       throw UnsupportedError(
         'Supported Docker transports: unix, tcp, http, https',
@@ -30,7 +32,7 @@ class DockerConfig {
     if (this.host.isEmpty) throw ArgumentError.value(host, 'host');
   }
 
-  factory DockerConfig.fromEnvironment([Map<String, String>? environment]) {
+  factory fromEnvironment([Map<String, String>? environment]) {
     final env = environment ?? Platform.environment;
     if ((env['DOCKER_TLS_VERIFY'] ?? '').isNotEmpty ||
         (env['DOCKER_CERT_PATH'] ?? '').isNotEmpty) {
@@ -52,8 +54,4 @@ class DockerConfig {
       host: env['TESTCONTAINERS_HOST_OVERRIDE'],
     );
   }
-
-  final Uri endpoint;
-  final String host;
-  final Duration requestTimeout;
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:docker_engine/docker_engine.dart';
@@ -5,27 +6,19 @@ import 'package:http/http.dart' as http;
 
 import 'container_config.dart';
 
-class StartedContainer {
-  StartedContainer({
-    required Docker api,
-    required this.id,
-    required this.image,
-    required this.host,
-    void Function()? onTerminate,
-  }) : _api = api,
-       _onTerminate = onTerminate;
-
-  final Docker _api;
-  final void Function()? _onTerminate;
-  final String id;
-  final String image;
-  final String host;
-
+class StartedContainer({
+  required final Docker _api,
+  required final String id,
+  required final String image,
+  required final String host,
+  final void Function()? _onTerminate,
+}) {
   Future<void>? _termination;
 
   Future<Map<String, dynamic>> inspect() async {
     final response = await _api.containersIdJsonGet(id: id);
     checkResponse(response);
+
     final base = response.base;
     return base is http.Response && base.bodyBytes.isNotEmpty
         ? jsonDecode(responseText(response)) as Map<String, dynamic>
@@ -54,14 +47,15 @@ class StartedContainer {
     return result;
   }
 
-  Future<String> logs({int tail = 1000}) async {
-    if (tail < 0) throw ArgumentError.value(tail, 'tail');
+  /// Returns recent output, or all available history when [tail] is null.
+  Future<String> logs({int? tail = 1000}) async {
+    if (tail != null && tail < 0) throw ArgumentError.value(tail, 'tail');
 
     final response = await _api.containersIdLogsGet(
       id: id,
       stdout: true,
       stderr: true,
-      tail: '$tail',
+      tail: tail == null ? 'all' : '$tail',
     );
     checkResponse(response);
 
@@ -73,6 +67,22 @@ class StartedContainer {
     return decodeDockerOutput(bytes).combined;
   }
 
+  /// Replays [tail] recent lines, then follows new stdout/stderr text fragments.
+  /// Cancel the subscription to close just this log request.
+  Stream<DockerLogChunk> logsStream({int tail = 100}) {
+    if (tail < 0) throw ArgumentError.value(tail, 'tail');
+
+    return Stream<void>.value(null)
+        .asyncExpand((_) => Stream.fromFuture(inspect()))
+        .asyncExpand(
+          (info) => _api.logsStream(
+            id: id,
+            tty: info['Config']?['Tty'] == true,
+            tail: tail,
+          ),
+        );
+  }
+
   Future<ExecResult> exec(List<String> command) async {
     if (command.isEmpty || command.any((arg) => arg.contains('\u0000'))) {
       throw ArgumentError.value(
@@ -81,6 +91,7 @@ class StartedContainer {
         'An argument array without NUL is required',
       );
     }
+
     final created = await _api.containersIdExecPost(
       id: id,
       execConfig: {
@@ -95,11 +106,13 @@ class StartedContainer {
     if (execId == null || execId.isEmpty) {
       throw const FormatException('Docker exec response is missing Id');
     }
+
     final started = await _api.execIdStartPost(
       id: execId,
       execStartConfig: {'Detach': false, 'Tty': false},
     );
     checkResponse(started);
+
     final base = started.base;
     final output = decodeDockerOutput(
       base is http.Response
@@ -108,10 +121,12 @@ class StartedContainer {
     );
     final inspected = await _api.execIdJsonGet(id: execId);
     checkResponse(inspected);
+
     final info = inspected.body;
     if (info?.running != false || info?.exitCode == null) {
       throw StateError('Exec $execId has not completed');
     }
+
     return ExecResult(
       exitCode: info!.exitCode!,
       stdout: output.stdout,
@@ -143,14 +158,8 @@ class StartedContainer {
   }
 }
 
-class ExecResult {
-  const ExecResult({
-    required this.exitCode,
-    required this.stdout,
-    required this.stderr,
-  });
-
-  final int exitCode;
-  final String stdout;
-  final String stderr;
-}
+class ExecResult({
+  required final int exitCode,
+  required final String stdout,
+  required final String stderr,
+});

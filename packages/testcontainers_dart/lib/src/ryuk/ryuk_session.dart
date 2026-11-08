@@ -10,17 +10,15 @@ import '../container/started_container.dart';
 import '../errors/exceptions.dart';
 import 'ryuk_config.dart';
 
-class RyukSession {
-  RyukSession(this.api, this.host, this.config)
-    : id = List.generate(
-        16,
-        (_) => Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0'),
-      ).join();
-
-  final Docker api;
-  final String host;
-  final RyukConfig config;
-  final String id;
+class RyukSession(
+  final Docker api,
+  final String host,
+  final RyukConfig config,
+) {
+  final String id = List.generate(
+    16,
+    (_) => Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0'),
+  ).join();
   Future<void>? _startup;
   Socket? _socket;
   Completer<void>? _ack;
@@ -111,7 +109,7 @@ class RyukSession {
         } on SocketException {
           _checkOpen();
           final left = remaining();
-          await Future<void>.delayed(
+          await Future.pause(
             left < const Duration(milliseconds: 100)
                 ? left
                 : const Duration(milliseconds: 100),

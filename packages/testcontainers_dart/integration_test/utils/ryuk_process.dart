@@ -56,9 +56,7 @@ Future<void> report(StartedContainer container) async {
   await stdout.flush();
 }
 
-class _FailAfterReport implements Wait {
-  const _FailAfterReport();
-
+class const _FailAfterReport() implements Wait {
   @override
   Future<void> waitUntilReady(StartedContainer container) async {
     await report(container);

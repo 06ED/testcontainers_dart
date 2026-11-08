@@ -1,7 +1,7 @@
 library;
 
 export 'package:docker_engine/docker_engine.dart'
-    show DockerConfig, DockerException;
+    show DockerConfig, DockerException, DockerLogChunk, DockerLogSource;
 
 export 'src/container/container_config.dart';
 export 'src/container/docker_provider.dart';

@@ -11,8 +11,8 @@ void checkResponse(Response<dynamic> response, {Set<int> allowed = const {}}) {
   String message = body;
   try {
     final json = jsonDecode(body);
-    if (json is Map && json['message'] is String) {
-      message = json['message'] as String;
+    if (json case {'message': final String error}) {
+      message = error;
     }
   } on FormatException {
     // Docker proxies can return plain-text errors.

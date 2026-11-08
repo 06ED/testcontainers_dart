@@ -1,5 +1,11 @@
 ## Unreleased
 
+- Require Dart 3.13.7 and adopt primary constructors, `Future.pause` and typed
+  unmodifiable list copies without changing container lifecycle behavior.
+- Remove the 1000-line readiness limit: log waits search all available history.
+  Add `logs(tail: null)` to read all history, retaining the default snapshot tail.
+- Add lazy `StartedContainer.logsStream()` with stdout/stderr chunks, TTY detection,
+  historical tail selection and cancellation without closing shared connections.
 - **Breaking:** Rename the readiness interface from `WaitStrategy` to `Wait` and
   move the `Wait.for...` helpers into factory constructors on that interface.
 - Split readiness strategies into separate files with a shared wait export.

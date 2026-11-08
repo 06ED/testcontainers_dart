@@ -130,27 +130,24 @@ void main() {
       },
     );
 
-    test(
-      'preserves a pull response as NDJSON instead of decoding a single JSON value',
-      () async {
-        handler = (request) async {
-          if (!request.uri.path.endsWith('/images/create')) return false;
-          request.response.write('{"status":"Pulling"}\n{"status":"Done"}\n');
-          await request.response.close();
-          return true;
-        };
-        final connection = await connect();
-        addTearDown(connection.close);
-        final response = await connection.api.imagesCreatePost(
-          fromImage: 'redis',
-        );
-        checkResponse(response);
-        expect(
-          responseText(response),
-          '{"status":"Pulling"}\n{"status":"Done"}\n',
-        );
-      },
-    );
+    test('preserves a pull response as NDJSON instead of decoding a single JSON value', () async {
+      handler = (request) async {
+        if (!request.uri.path.endsWith('/images/create')) return false;
+        request.response.write('{"status":"Pulling"}\n{"status":"Done"}\n');
+        await request.response.close();
+        return true;
+      };
+      final connection = await connect();
+      addTearDown(connection.close);
+      final response = await connection.api.imagesCreatePost(
+        fromImage: 'redis',
+      );
+      checkResponse(response);
+      expect(
+        responseText(response),
+        '{"status":"Pulling"}\n{"status":"Done"}\n',
+      );
+    });
 
     for (final partialBody in [false, true]) {
       test(
@@ -229,7 +226,16 @@ void main() {
       InternetAddress(path, type: InternetAddressType.unix),
       0,
     );
-    serve(server, () => '1.53');
+    serve(
+      server,
+      () => '1.53',
+      handler: (request) async {
+        if (!request.uri.path.endsWith('/logs')) return false;
+        request.response.write('unix logs');
+        await request.response.close();
+        return true;
+      },
+    );
     addTearDown(() async {
       await server.close(force: true);
       await directory.delete(recursive: true);
@@ -244,6 +250,10 @@ void main() {
       body: {'Image': 'busybox:1.37'},
     );
     expect(response.body!.id, 'standalone-1');
+    final chunks = await connection.api
+        .logsStream(id: 'standalone-1', tty: true)
+        .toList();
+    expect(chunks.single.text, 'unix logs');
   }, skip: Platform.isWindows);
 }
 

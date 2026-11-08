@@ -7,13 +7,14 @@ import 'package:docker_engine/docker_engine.dart'
         ContainerCreateResponse,
         ContainerInspectResponse,
         ContainerState,
-        ContainerSummary;
+        ContainerSummary,
+        Docker;
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 import 'package:testcontainers_dart/testcontainers_dart.dart';
 
-class MockDockerApi extends Mock implements DockerApi {}
+class MockDockerApi() extends Mock implements Docker;
 
 void main() {
   late MockDockerApi api;
@@ -21,9 +22,8 @@ void main() {
   setUp(() {
     api = MockDockerApi();
 
-    when(
-      () => api.imagesCreatePost(fromImage: any(named: 'fromImage')),
-    ).thenAnswer((_) async => response<dynamic>(200, null));
+    when(() => api.imagesCreatePost(fromImage: any(named: 'fromImage')))
+        .thenAnswer((_) async => response<dynamic>(200, null));
 
     when(
       () => api.containersCreatePost(
@@ -37,9 +37,8 @@ void main() {
       ),
     );
 
-    when(
-      () => api.containersIdStartPost(id: any(named: 'id')),
-    ).thenAnswer((_) async => response<dynamic>(204, null));
+    when(() => api.containersIdStartPost(id: any(named: 'id')))
+        .thenAnswer((_) async => response<dynamic>(204, null));
 
     when(
       () => api.containersIdStopPost(
@@ -97,9 +96,8 @@ void main() {
           id: 'container-1',
           state: ContainerState(running: true),
         );
-        when(
-          () => api.containersIdJsonGet(id: 'container-1'),
-        ).thenAnswer((_) async => response(200, info));
+        when(() => api.containersIdJsonGet(id: 'container-1'))
+            .thenAnswer((_) async => response(200, info));
         expect(await container.inspect(), info.toJson());
       },
     );
@@ -213,9 +211,8 @@ void main() {
         );
         for (final image in ['redis', 'registry.example:5000/team/redis']) {
           await provider.start(ContainerConfig(image: image));
-          verify(
-            () => api.imagesCreatePost(fromImage: '$image:latest'),
-          ).called(1);
+          verify(() => api.imagesCreatePost(fromImage: '$image:latest'))
+              .called(1);
         }
       },
     );
@@ -224,9 +221,8 @@ void main() {
       'request values are snapshotted before the first Docker call',
       () async {
         final pull = Completer<Response<dynamic>>();
-        when(
-          () => api.imagesCreatePost(fromImage: any(named: 'fromImage')),
-        ).thenAnswer((_) => pull.future);
+        when(() => api.imagesCreatePost(fromImage: any(named: 'fromImage')))
+            .thenAnswer((_) => pull.future);
         final environment = {'MODE': 'test'};
         final command = ['original'];
         final labels = {'owner': 'test'};
@@ -261,31 +257,25 @@ void main() {
       },
     );
 
-    test(
-      'concurrent termination performs one delete, and failed deletion can retry',
-      () async {
-        var calls = 0;
-        when(
-          () => api.containersIdDelete(
-            id: any(named: 'id'),
-            force: any(named: 'force'),
-            v: any(named: 'v'),
-          ),
-        ).thenAnswer(
-          (_) async => response<dynamic>(++calls == 1 ? 500 : 204, null),
-        );
-        final container = await DockerProvider(
-          dockerApi: api,
-          ryuk: const RyukConfig(enabled: false),
-        ).start(const ContainerConfig(image: 'redis'));
-        await expectLater(
-          container.terminate(),
-          throwsA(isA<DockerException>()),
-        );
-        await Future.wait([container.terminate(), container.terminate()]);
-        expect(calls, 2);
-      },
-    );
+    test('concurrent termination performs one delete, and failed deletion can retry', () async {
+      var calls = 0;
+      when(
+        () => api.containersIdDelete(
+          id: any(named: 'id'),
+          force: any(named: 'force'),
+          v: any(named: 'v'),
+        ),
+      ).thenAnswer(
+        (_) async => response<dynamic>(++calls == 1 ? 500 : 204, null),
+      );
+      final container = await DockerProvider(
+        dockerApi: api,
+        ryuk: const RyukConfig(enabled: false),
+      ).start(const ContainerConfig(image: 'redis'));
+      await expectLater(container.terminate(), throwsA(isA<DockerException>()));
+      await Future.wait([container.terminate(), container.terminate()]);
+      expect(calls, 2);
+    });
 
     test(
       'creation errors never attempt cleanup of an unknown container',
@@ -384,15 +374,14 @@ void main() {
     });
 
     test('does not create a container when pull fails', () async {
-      when(
-        () => api.imagesCreatePost(fromImage: any(named: 'fromImage')),
-      ).thenAnswer(
-        (_) async => response<dynamic>(
-          500,
-          null,
-          rawBody: '{"message":"registry unavailable"}',
-        ),
-      );
+      when(() => api.imagesCreatePost(fromImage: any(named: 'fromImage')))
+          .thenAnswer(
+            (_) async => response<dynamic>(
+              500,
+              null,
+              rawBody: '{"message":"registry unavailable"}',
+            ),
+          );
       await expectLater(
         DockerProvider(
           dockerApi: api,
@@ -411,15 +400,14 @@ void main() {
     });
 
     test('detects errors inside successful pull HTTP responses', () async {
-      when(
-        () => api.imagesCreatePost(fromImage: any(named: 'fromImage')),
-      ).thenAnswer(
-        (_) async => response<dynamic>(
-          200,
-          null,
-          rawBody: '{"status":"Pulling"}\n{"error":"denied"}\n',
-        ),
-      );
+      when(() => api.imagesCreatePost(fromImage: any(named: 'fromImage')))
+          .thenAnswer(
+            (_) async => response<dynamic>(
+              200,
+              null,
+              rawBody: '{"status":"Pulling"}\n{"error":"denied"}\n',
+            ),
+          );
       await expectLater(
         DockerProvider(
           dockerApi: api,
@@ -444,9 +432,8 @@ void main() {
     test(
       'removes created container when start fails and includes logs',
       () async {
-        when(
-          () => api.containersIdStartPost(id: any(named: 'id')),
-        ).thenAnswer((_) async => response<dynamic>(500, null));
+        when(() => api.containersIdStartPost(id: any(named: 'id')))
+            .thenAnswer((_) async => response<dynamic>(500, null));
         await expectLater(
           DockerProvider(
             dockerApi: api,
@@ -553,8 +540,7 @@ void main() {
         (_) async => response<ContainerInspectResponse>(
           200,
           const ContainerInspectResponse(state: ContainerState(running: true)),
-          rawBody:
-              '{"State":{"Running":true},"NetworkSettings":{"Ports":{"6379/tcp":[{"HostIp":"127.0.0.1","HostPort":"32768"}]}}}',
+          rawBody: '{"State":{"Running":true},"NetworkSettings":{"Ports":{"6379/tcp":[{"HostIp":"127.0.0.1","HostPort":"32768"}]}}}',
         ),
       );
 
@@ -599,7 +585,7 @@ Response<T> response<T>(int statusCode, T? body, {String rawBody = ''}) {
   return Response<T>(http.Response(rawBody, statusCode), body);
 }
 
-class FailingWait implements Wait {
+class FailingWait() implements Wait {
   @override
   Future<void> waitUntilReady(StartedContainer container) async {
     throw StateError('not ready');

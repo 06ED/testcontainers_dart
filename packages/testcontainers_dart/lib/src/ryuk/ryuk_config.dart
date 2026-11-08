@@ -1,15 +1,18 @@
 import 'dart:io';
 
-class RyukConfig {
-  const RyukConfig({
-    this.enabled = true,
-    this.image = 'testcontainers/ryuk:0.14.0',
-    this.socketPath = '/var/run/docker.sock',
-    this.portBindingHost = '127.0.0.1',
-    this.startupTimeout = const Duration(seconds: 30),
-  });
+class const RyukConfig({
+  final bool enabled = true,
+  final String image = 'testcontainers/ryuk:0.14.0',
 
-  factory RyukConfig.fromEnvironment([Map<String, String>? environment]) {
+  /// Socket path on the Docker daemon's host, not the client machine.
+  final String socketPath = '/var/run/docker.sock',
+  final String portBindingHost = '127.0.0.1',
+
+  /// Bounds TCP connection retries and filter acknowledgement after Docker start.
+  /// Docker API calls use `DockerConfig.requestTimeout`.
+  final Duration startupTimeout = const Duration(seconds: 30),
+}) {
+  factory fromEnvironment([Map<String, String>? environment]) {
     final env = environment ?? Platform.environment;
     final disabled = env['TESTCONTAINERS_RYUK_DISABLED'] ?? 'false';
 
@@ -31,17 +34,6 @@ class RyukConfig {
           '/var/run/docker.sock',
     )..validate();
   }
-
-  final bool enabled;
-  final String image;
-
-  /// Socket path on the Docker daemon's host, not the client machine.
-  final String socketPath;
-  final String portBindingHost;
-
-  /// Bounds TCP connection retries and filter acknowledgement after Docker start.
-  /// Docker API calls use `DockerConfig.requestTimeout`.
-  final Duration startupTimeout;
 
   void validate() {
     if (image.trim().isEmpty || image.contains('\u0000')) {

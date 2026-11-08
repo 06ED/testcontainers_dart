@@ -23,9 +23,8 @@ void main() {
 
   test('default discovery recognizes Docker Desktop Unix sockets', () async {
     final home = await Directory.systemTemp.createTemp('tc-');
-    final directory = await Directory(
-      '${home.path}/.docker/run',
-    ).create(recursive: true);
+    final directory = await Directory('${home.path}/.docker/run')
+        .create(recursive: true);
     final path = '${directory.path}/docker.sock';
     final socket = await ServerSocket.bind(
       InternetAddress(path, type: InternetAddressType.unix),
@@ -41,22 +40,19 @@ void main() {
     );
   }, skip: Platform.isWindows);
 
-  test(
-    'configuration rejects unsupported transports and TLS env instead of downgrading',
-    () {
-      expect(
-        () => DockerConfig(endpoint: Uri.parse('ssh://docker')),
-        throwsUnsupportedError,
-      );
-      expect(
-        () => DockerConfig.fromEnvironment({
-          'DOCKER_HOST': 'tcp://docker:2376',
-          'DOCKER_TLS_VERIFY': '1',
-        }),
-        throwsUnsupportedError,
-      );
-    },
-  );
+  test('configuration rejects unsupported transports and TLS env instead of downgrading', () {
+    expect(
+      () => DockerConfig(endpoint: Uri.parse('ssh://docker')),
+      throwsUnsupportedError,
+    );
+    expect(
+      () => DockerConfig.fromEnvironment({
+        'DOCKER_HOST': 'tcp://docker:2376',
+        'DOCKER_TLS_VERIFY': '1',
+      }),
+      throwsUnsupportedError,
+    );
+  });
 
   group('Engine HTTP API', () {
     late DockerServer server;
@@ -129,6 +125,60 @@ void main() {
       expect(await container.logs(), 'приветerror\n');
     });
 
+    test(
+      'log readiness finds a message before the latest 1000 lines',
+      () async {
+        final lines = ['ready', ...List.filled(1500, 'startup noise')];
+        final requestedTails = <String?>[];
+        server.handler = (request) async {
+          if (!request.uri.path.endsWith('/logs')) return false;
+          final tail = request.uri.queryParameters['tail'];
+          requestedTails.add(tail);
+          final count = int.tryParse(tail ?? '');
+          final output = count == null
+              ? lines
+              : lines.skip(lines.length - count);
+          await DockerServer.respond(
+            request,
+            frame(1, utf8.encode(output.join('\n'))),
+            contentType: 'application/vnd.docker.raw-stream',
+          );
+          return true;
+        };
+        await connect();
+        await provider.start(
+          ContainerConfig(
+            image: 'redis',
+            waitStrategy: .forLogMessage(
+              'ready',
+              timeout: const Duration(seconds: 1),
+            ),
+          ),
+        );
+        expect(requestedTails, ['all']);
+      },
+    );
+
+    test('snapshot logs preserve tail selection and validate it', () async {
+      final requestedTails = <String?>[];
+      server.handler = (request) async {
+        if (!request.uri.path.endsWith('/logs')) return false;
+        requestedTails.add(request.uri.queryParameters['tail']);
+        await DockerServer.respond(request, 'output');
+        return true;
+      };
+      await connect();
+      final container = await provider.start(
+        const ContainerConfig(image: 'redis'),
+      );
+      for (final tail in [1000, 100, 0, null]) {
+        expect(await container.logs(tail: tail), 'output');
+      }
+      expect(await container.logs(), 'output');
+      await expectLater(container.logs(tail: -1), throwsArgumentError);
+      expect(requestedTails, ['1000', '100', '0', 'all', '1000']);
+    });
+
     test('reports truncated multiplex frames', () async {
       server.handler = (request) async {
         if (!request.uri.path.endsWith('/logs')) return false;
@@ -152,40 +202,37 @@ void main() {
       await expectLater(container.logs(), throwsFormatException);
     });
 
-    test(
-      'exec sends argument arrays, separates output and retains nonzero exit code',
-      () async {
-        server.handler = (request) async {
-          if (request.uri.path.endsWith('/container-1/exec')) {
-            await DockerServer.respond(request, {'Id': 'exec-1'}, status: 201);
-          } else if (request.uri.path.endsWith('/exec/exec-1/start')) {
-            await DockerServer.respond(request, [
-              ...frame(1, utf8.encode('hello')),
-              ...frame(2, utf8.encode('bad')),
-            ], contentType: 'application/vnd.docker.raw-stream');
-          } else if (request.uri.path.endsWith('/exec/exec-1/json')) {
-            await DockerServer.respond(request, {
-              'Running': false,
-              'ExitCode': 7,
-            });
-          } else {
-            return false;
-          }
-          return true;
-        };
-        await connect();
-        final container = await provider.start(
-          const ContainerConfig(image: 'redis'),
-        );
-        final result = await container.exec(['sh', '-c', 'echo hello; exit 7']);
-        expect(result.exitCode, 7);
-        expect(result.stdout, 'hello');
-        expect(result.stderr, 'bad');
-        final body = jsonDecode(server.bodies[4]);
-        expect(body['Cmd'], ['sh', '-c', 'echo hello; exit 7']);
-        expect(body['Tty'], false);
-      },
-    );
+    test('exec sends argument arrays, separates output and retains nonzero exit code', () async {
+      server.handler = (request) async {
+        if (request.uri.path.endsWith('/container-1/exec')) {
+          await DockerServer.respond(request, {'Id': 'exec-1'}, status: 201);
+        } else if (request.uri.path.endsWith('/exec/exec-1/start')) {
+          await DockerServer.respond(request, [
+            ...frame(1, utf8.encode('hello')),
+            ...frame(2, utf8.encode('bad')),
+          ], contentType: 'application/vnd.docker.raw-stream');
+        } else if (request.uri.path.endsWith('/exec/exec-1/json')) {
+          await DockerServer.respond(request, {
+            'Running': false,
+            'ExitCode': 7,
+          });
+        } else {
+          return false;
+        }
+        return true;
+      };
+      await connect();
+      final container = await provider.start(
+        const ContainerConfig(image: 'redis'),
+      );
+      final result = await container.exec(['sh', '-c', 'echo hello; exit 7']);
+      expect(result.exitCode, 7);
+      expect(result.stdout, 'hello');
+      expect(result.stderr, 'bad');
+      final body = jsonDecode(server.bodies[4]);
+      expect(body['Cmd'], ['sh', '-c', 'echo hello; exit 7']);
+      expect(body['Tty'], false);
+    });
 
     test('exec rejects incomplete Docker command results', () async {
       var result = <String, dynamic>{'Running': true, 'ExitCode': 0};
