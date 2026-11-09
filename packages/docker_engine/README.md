@@ -46,7 +46,7 @@ Future<void> main() async {
 - Generated `Docker` methods and response models are exported publicly. Prefix
   the import to avoid collisions between Docker model names and SDK types.
 
-The connection negotiates Docker API **1.41–1.53**. HTTPS uses system-trusted server
+The connection negotiates Docker API **1.41–1.55**. HTTPS uses system-trusted server
 certificates. Client-certificate environment settings, SSH, named pipes, Docker CLI
 contexts and registry authentication are not implemented. Never expose unencrypted
 Docker TCP to untrusted networks.
@@ -66,7 +66,8 @@ This package is a member of the repository's Pub workspace. From this directory:
 ```sh
 dart test
 dart run build_runner build --delete-conflicting-outputs
+dart format lib/src/generated
 ```
 
-The generated sources and Engine v1.53 schema are included. Generation uses
+The generated sources and Engine v1.55 schema are included. Generation uses
 Swagger/Chopper; no code generation is needed to consume the package.

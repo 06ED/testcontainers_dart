@@ -1,6 +1,6 @@
 name: docker_engine
 description: Docker Engine API client with Unix and TCP transports, API negotiation and Docker stream decoding.
-version: 0.1.0
+version: 0.2.0
 resolution: workspace
 
 repository: https://github.com/06ED/testcontainers_dart

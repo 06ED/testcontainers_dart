@@ -334,7 +334,7 @@ void main() {
           );
         }
         if (stage == 'start' || stage == 'inspect') {
-          expect(docker.paths, contains('/v1.53/containers/ryuk-1'));
+          expect(docker.paths, contains('/v1.55/containers/ryuk-1'));
         }
       });
     }
@@ -460,7 +460,7 @@ void main() {
         provider.start(const ContainerConfig(image: 'redis')),
         throwsA(isA<ContainerStartException>()),
       );
-      expect(docker.paths, contains('/v1.53/containers/container-1'));
+      expect(docker.paths, contains('/v1.55/containers/container-1'));
       expect(disconnected.isCompleted, false);
       provider.close();
       await disconnected.future.timeout(const Duration(seconds: 1));
@@ -499,7 +499,7 @@ void main() {
             throwsA(isA<ContainerStartException>()),
           );
           expect(bodies(), hasLength(1));
-          expect(docker.paths, contains('/v1.53/containers/ryuk-1'));
+          expect(docker.paths, contains('/v1.55/containers/ryuk-1'));
         },
       );
     }
@@ -558,7 +558,7 @@ void main() {
         provider.close();
         await assertion;
         expect(bodies(), hasLength(1));
-        expect(docker.paths, contains('/v1.53/containers/ryuk-1'));
+        expect(docker.paths, contains('/v1.55/containers/ryuk-1'));
       },
     );
 

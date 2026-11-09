@@ -7,4 +7,4 @@ environment:
   sdk: ^3.13.7
 
 dependencies:
-  testcontainers_dart: ^0.1.0
+  testcontainers_dart: ^0.2.0

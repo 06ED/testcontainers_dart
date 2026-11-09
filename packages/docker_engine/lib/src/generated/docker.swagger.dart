@@ -48,7 +48,7 @@ abstract class Docker extends ChopperService {
       client: httpClient,
       authenticator: authenticator,
       errorConverter: errorConverter,
-      baseUrl: baseUrl ?? Uri.parse('http:///v1.53'),
+      baseUrl: baseUrl ?? Uri.parse('http:///v1.55'),
     );
     return _$Docker(newClient);
   }
@@ -704,12 +704,14 @@ abstract class Docker extends ChopperService {
   ///@param shared-size Compute and show shared size as a `SharedSize` field on each image.
   ///@param digests Show digest information as a `RepoDigests` field on each image.
   ///@param manifests Include `Manifests` in the image summary.
+  ///@param identity Include `Identity` in each manifest summary. Requires `manifests=1`.
   Future<chopper.Response<List<ImageSummary>>> imagesJsonGet({
     bool? all,
     String? filters,
     bool? sharedSize,
     bool? digests,
     bool? manifests,
+    bool? identity,
   }) {
     generatedMapping.putIfAbsent(
       ImageSummary,
@@ -722,6 +724,7 @@ abstract class Docker extends ChopperService {
       sharedSize: sharedSize,
       digests: digests,
       manifests: manifests,
+      identity: identity,
     );
   }
 
@@ -731,6 +734,7 @@ abstract class Docker extends ChopperService {
   ///@param shared-size Compute and show shared size as a `SharedSize` field on each image.
   ///@param digests Show digest information as a `RepoDigests` field on each image.
   ///@param manifests Include `Manifests` in the image summary.
+  ///@param identity Include `Identity` in each manifest summary. Requires `manifests=1`.
   @GET(path: '/images/json')
   Future<chopper.Response<List<ImageSummary>>> _imagesJsonGet({
     @Query('all') bool? all,
@@ -738,6 +742,7 @@ abstract class Docker extends ChopperService {
     @Query('shared-size') bool? sharedSize,
     @Query('digests') bool? digests,
     @Query('manifests') bool? manifests,
+    @Query('identity') bool? identity,
   });
 
   ///Build an image
@@ -1021,6 +1026,45 @@ abstract class Docker extends ChopperService {
     @Path('name') required String? name,
     @Query('manifests') bool? manifests,
     @Query('platform') String? platform,
+  });
+
+  ///Get attestation statements for an image
+  ///@param name Image name or id
+  ///@param platform JSON-encoded OCI platform to select the image variant whose attestations to return. If omitted, the daemon's default (host) platform is used.  Only one platform value is currently accepted; passing more than one returns an error. The parameter is declared as an array so the wire shape can accept multiple values in the future without an API version bump.  Example: `{"os": "linux", "architecture": "amd64"}`
+  ///@param type In-toto predicate type URI to filter returned statements. May be repeated to accept any of several predicate types. If omitted, all statements are returned.  Example: `type=https://slsa.dev/provenance/v0.2&type=https://spdx.dev/Document`
+  ///@param statement Include the verbatim in-toto statement body in each returned entry. Defaults to false; when omitted or false, only the descriptor and predicate type are returned and statement blobs are not read.
+  Future<chopper.Response<List<AttestationStatement>>>
+  imagesNameAttestationsGet({
+    required String? name,
+    List<String>? platform,
+    List<String>? type,
+    bool? statement,
+  }) {
+    generatedMapping.putIfAbsent(
+      AttestationStatement,
+      () => AttestationStatement.fromJsonFactory,
+    );
+
+    return _imagesNameAttestationsGet(
+      name: name,
+      platform: platform,
+      type: type,
+      statement: statement,
+    );
+  }
+
+  ///Get attestation statements for an image
+  ///@param name Image name or id
+  ///@param platform JSON-encoded OCI platform to select the image variant whose attestations to return. If omitted, the daemon's default (host) platform is used.  Only one platform value is currently accepted; passing more than one returns an error. The parameter is declared as an array so the wire shape can accept multiple values in the future without an API version bump.  Example: `{"os": "linux", "architecture": "amd64"}`
+  ///@param type In-toto predicate type URI to filter returned statements. May be repeated to accept any of several predicate types. If omitted, all statements are returned.  Example: `type=https://slsa.dev/provenance/v0.2&type=https://spdx.dev/Document`
+  ///@param statement Include the verbatim in-toto statement body in each returned entry. Defaults to false; when omitted or false, only the descriptor and predicate type are returned and statement blobs are not read.
+  @GET(path: '/images/{name}/attestations')
+  Future<chopper.Response<List<AttestationStatement>>>
+  _imagesNameAttestationsGet({
+    @Path('name') required String? name,
+    @Query('platform') List<String>? platform,
+    @Query('type') List<String>? type,
+    @Query('statement') bool? statement,
   });
 
   ///Get the history of an image
@@ -2432,7 +2476,7 @@ abstract class Docker extends ChopperService {
   });
 
   ///List secrets
-  ///@param filters A JSON encoded value of the filters (a `map[string][]string`) to process on the secrets list.  Available filters:  - `id=<secret id>` - `label=<key> or label=<key>=value` - `name=<secret name>` - `names=<secret name>`
+  ///@param filters A JSON encoded value of the filters (a `map[string][]string`) to process on the secrets list.  Available filters:  - `id=<secret id>` - `label=<key> or label=<key>=value` - `name=<secret name>` matches all or part of a secret name (prefix match) - `names=<secret name>` matches a secret name (exact match)
   Future<chopper.Response<List<Secret>>> secretsGet({String? filters}) {
     generatedMapping.putIfAbsent(Secret, () => Secret.fromJsonFactory);
 
@@ -2440,7 +2484,7 @@ abstract class Docker extends ChopperService {
   }
 
   ///List secrets
-  ///@param filters A JSON encoded value of the filters (a `map[string][]string`) to process on the secrets list.  Available filters:  - `id=<secret id>` - `label=<key> or label=<key>=value` - `name=<secret name>` - `names=<secret name>`
+  ///@param filters A JSON encoded value of the filters (a `map[string][]string`) to process on the secrets list.  Available filters:  - `id=<secret id>` - `label=<key> or label=<key>=value` - `name=<secret name>` matches all or part of a secret name (prefix match) - `names=<secret name>` matches a secret name (exact match)
   @GET(path: '/secrets')
   Future<chopper.Response<List<Secret>>> _secretsGet({
     @Query('filters') String? filters,
@@ -2513,7 +2557,7 @@ abstract class Docker extends ChopperService {
   });
 
   ///List configs
-  ///@param filters A JSON encoded value of the filters (a `map[string][]string`) to process on the configs list.  Available filters:  - `id=<config id>` - `label=<key> or label=<key>=value` - `name=<config name>`
+  ///@param filters A JSON encoded value of the filters (a `map[string][]string`) to process on the configs list.  Available filters:  - `id=<config id>` - `label=<key> or label=<key>=value` - `name=<config name>` matches all or part of a config name (prefix match)
   Future<chopper.Response<List<Config>>> configsGet({String? filters}) {
     generatedMapping.putIfAbsent(Config, () => Config.fromJsonFactory);
 
@@ -2521,7 +2565,7 @@ abstract class Docker extends ChopperService {
   }
 
   ///List configs
-  ///@param filters A JSON encoded value of the filters (a `map[string][]string`) to process on the configs list.  Available filters:  - `id=<config id>` - `label=<key> or label=<key>=value` - `name=<config name>`
+  ///@param filters A JSON encoded value of the filters (a `map[string][]string`) to process on the configs list.  Available filters:  - `id=<config id>` - `label=<key> or label=<key>=value` - `name=<config name>` matches all or part of a config name (prefix match)
   @GET(path: '/configs')
   Future<chopper.Response<List<Config>>> _configsGet({
     @Query('filters') String? filters,
@@ -19477,6 +19521,88 @@ extension $TopologyExtension on Topology {
 }
 
 @JsonSerializable(explicitToJson: true)
+class AttestationStatement {
+  const AttestationStatement({
+    required this.descriptor,
+    required this.predicateType,
+    this.statement,
+  });
+
+  factory AttestationStatement.fromJson(Map<String, dynamic> json) =>
+      _$AttestationStatementFromJson(json);
+
+  static const toJsonFactory = _$AttestationStatementToJson;
+  Map<String, dynamic> toJson() => _$AttestationStatementToJson(this);
+
+  @JsonKey(name: 'Descriptor')
+  final OCIDescriptor descriptor;
+  @JsonKey(name: 'PredicateType')
+  final String predicateType;
+  @JsonKey(name: 'Statement')
+  final Object? statement;
+  static const fromJsonFactory = _$AttestationStatementFromJson;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other is AttestationStatement &&
+            (identical(other.descriptor, descriptor) ||
+                const DeepCollectionEquality().equals(
+                  other.descriptor,
+                  descriptor,
+                )) &&
+            (identical(other.predicateType, predicateType) ||
+                const DeepCollectionEquality().equals(
+                  other.predicateType,
+                  predicateType,
+                )) &&
+            (identical(other.statement, statement) ||
+                const DeepCollectionEquality().equals(
+                  other.statement,
+                  statement,
+                )));
+  }
+
+  @override
+  String toString() => jsonEncode(this);
+
+  @override
+  int get hashCode =>
+      const DeepCollectionEquality().hash(descriptor) ^
+      const DeepCollectionEquality().hash(predicateType) ^
+      const DeepCollectionEquality().hash(statement) ^
+      runtimeType.hashCode;
+}
+
+extension $AttestationStatementExtension on AttestationStatement {
+  AttestationStatement copyWith({
+    OCIDescriptor? descriptor,
+    String? predicateType,
+    Object? statement,
+  }) {
+    return AttestationStatement(
+      descriptor: descriptor ?? this.descriptor,
+      predicateType: predicateType ?? this.predicateType,
+      statement: statement ?? this.statement,
+    );
+  }
+
+  AttestationStatement copyWithWrapped({
+    Wrapped<OCIDescriptor>? descriptor,
+    Wrapped<String>? predicateType,
+    Wrapped<Object?>? statement,
+  }) {
+    return AttestationStatement(
+      descriptor: (descriptor != null ? descriptor.value : this.descriptor),
+      predicateType: (predicateType != null
+          ? predicateType.value
+          : this.predicateType),
+      statement: (statement != null ? statement.value : this.statement),
+    );
+  }
+}
+
+@JsonSerializable(explicitToJson: true)
 class ImageManifestSummary {
   const ImageManifestSummary({
     required this.id,
@@ -24406,6 +24532,7 @@ extension $ImageManifestSummary$SizeExtension on ImageManifestSummary$Size {
 class ImageManifestSummary$ImageData {
   const ImageManifestSummary$ImageData({
     required this.platform,
+    this.identity,
     required this.containers,
     required this.size,
   });
@@ -24418,6 +24545,8 @@ class ImageManifestSummary$ImageData {
 
   @JsonKey(name: 'Platform')
   final OCIPlatform? platform;
+  @JsonKey(name: 'Identity')
+  final Identity? identity;
   @JsonKey(name: 'Containers', defaultValue: <String>[])
   final List<String> containers;
   @JsonKey(name: 'Size')
@@ -24432,6 +24561,11 @@ class ImageManifestSummary$ImageData {
                 const DeepCollectionEquality().equals(
                   other.platform,
                   platform,
+                )) &&
+            (identical(other.identity, identity) ||
+                const DeepCollectionEquality().equals(
+                  other.identity,
+                  identity,
                 )) &&
             (identical(other.containers, containers) ||
                 const DeepCollectionEquality().equals(
@@ -24448,6 +24582,7 @@ class ImageManifestSummary$ImageData {
   @override
   int get hashCode =>
       const DeepCollectionEquality().hash(platform) ^
+      const DeepCollectionEquality().hash(identity) ^
       const DeepCollectionEquality().hash(containers) ^
       const DeepCollectionEquality().hash(size) ^
       runtimeType.hashCode;
@@ -24457,11 +24592,13 @@ extension $ImageManifestSummary$ImageDataExtension
     on ImageManifestSummary$ImageData {
   ImageManifestSummary$ImageData copyWith({
     OCIPlatform? platform,
+    Identity? identity,
     List<String>? containers,
     ImageManifestSummary$ImageData$Size? size,
   }) {
     return ImageManifestSummary$ImageData(
       platform: platform ?? this.platform,
+      identity: identity ?? this.identity,
       containers: containers ?? this.containers,
       size: size ?? this.size,
     );
@@ -24469,11 +24606,13 @@ extension $ImageManifestSummary$ImageDataExtension
 
   ImageManifestSummary$ImageData copyWithWrapped({
     Wrapped<OCIPlatform?>? platform,
+    Wrapped<Identity?>? identity,
     Wrapped<List<String>>? containers,
     Wrapped<ImageManifestSummary$ImageData$Size>? size,
   }) {
     return ImageManifestSummary$ImageData(
       platform: (platform != null ? platform.value : this.platform),
+      identity: (identity != null ? identity.value : this.identity),
       containers: (containers != null ? containers.value : this.containers),
       size: (size != null ? size.value : this.size),
     );

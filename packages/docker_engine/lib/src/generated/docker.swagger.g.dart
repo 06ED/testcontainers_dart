@@ -3743,6 +3743,24 @@ Map<String, dynamic> _$TopologyToJson(Topology instance) => <String, dynamic>{
   'Segments': instance.segments,
 };
 
+AttestationStatement _$AttestationStatementFromJson(
+  Map<String, dynamic> json,
+) => AttestationStatement(
+  descriptor: OCIDescriptor.fromJson(
+    json['Descriptor'] as Map<String, dynamic>,
+  ),
+  predicateType: json['PredicateType'] as String,
+  statement: json['Statement'],
+);
+
+Map<String, dynamic> _$AttestationStatementToJson(
+  AttestationStatement instance,
+) => <String, dynamic>{
+  'Descriptor': instance.descriptor.toJson(),
+  'PredicateType': instance.predicateType,
+  'Statement': instance.statement,
+};
+
 ImageManifestSummary _$ImageManifestSummaryFromJson(
   Map<String, dynamic> json,
 ) => ImageManifestSummary(
@@ -4908,6 +4926,9 @@ ImageManifestSummary$ImageData _$ImageManifestSummary$ImageDataFromJson(
   platform: json['Platform'] == null
       ? null
       : OCIPlatform.fromJson(json['Platform'] as Map<String, dynamic>),
+  identity: json['Identity'] == null
+      ? null
+      : Identity.fromJson(json['Identity'] as Map<String, dynamic>),
   containers:
       (json['Containers'] as List<dynamic>?)
           ?.map((e) => e as String)
@@ -4922,6 +4943,7 @@ Map<String, dynamic> _$ImageManifestSummary$ImageDataToJson(
   ImageManifestSummary$ImageData instance,
 ) => <String, dynamic>{
   'Platform': instance.platform?.toJson(),
+  'Identity': instance.identity?.toJson(),
   'Containers': instance.containers,
   'Size': instance.size.toJson(),
 };

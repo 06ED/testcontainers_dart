@@ -1,5 +1,6 @@
-## Unreleased
+## 0.2.0
 
+- Upgrade to `docker_engine` 0.2.0 with Docker Engine API support through v1.55.
 - **Breaking:** Default to `PullPolicy.ifNotPresent` for application and Ryuk
   images instead of always pulling. Add `always` and `never` policies to both
   configurations; inspect failures other than 404 are propagated without pulling.

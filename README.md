@@ -229,7 +229,7 @@ final provider = await DockerProvider.connect(
 ```
 
 Unix sockets, HTTP/TCP and HTTPS with system-trusted server certificates are
-supported. Docker Engine API versions **1.41–1.53** are supported.
+supported. Docker Engine API versions **1.41–1.55** are supported.
 
 Ports bind to `127.0.0.1` by default. For remote Docker, set
 `ContainerConfig.portBindingHost` and `RyukConfig.portBindingHost` to an appropriate

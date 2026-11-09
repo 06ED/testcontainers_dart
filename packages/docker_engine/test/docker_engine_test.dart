@@ -69,7 +69,7 @@ void main() {
       final connection = await connect();
       addTearDown(connection.close);
 
-      expect(connection.api.client.baseUrl.path, '/v1.53');
+      expect(connection.api.client.baseUrl.path, '/v1.55');
       final response = await connection.api.containersCreatePost(
         body: {'Image': 'busybox:1.37'},
       );
@@ -99,7 +99,7 @@ void main() {
 
     test('rejects a minimum API newer than the supported maximum', () async {
       handler = (request) async {
-        request.response.write('{"ApiVersion":"1.60","MinAPIVersion":"1.54"}');
+        request.response.write('{"ApiVersion":"1.60","MinAPIVersion":"1.56"}');
         await request.response.close();
         return true;
       };
@@ -129,6 +129,17 @@ void main() {
         );
       },
     );
+
+    test('accepts a daemon requiring API 1.55', () async {
+      handler = (request) async {
+        request.response.write('{"ApiVersion":"1.55","MinAPIVersion":"1.55"}');
+        await request.response.close();
+        return true;
+      };
+      final connection = await connect();
+      addTearDown(connection.close);
+      expect(connection.api.client.baseUrl.path, '/v1.55');
+    });
 
     test('preserves a pull response as NDJSON instead of decoding a single JSON value', () async {
       handler = (request) async {

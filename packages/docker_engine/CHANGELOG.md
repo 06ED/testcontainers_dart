@@ -1,5 +1,6 @@
-## Unreleased
+## 0.2.0
 
+- Regenerate the client from Docker Engine API v1.55 and negotiate API 1.41–1.55.
 - Require Dart 3.13.7 and adopt primary constructors and concise constructor syntax.
 - Add cancellable `Docker.logsStream()` streaming over the configured transport,
   with incremental frame/UTF-8 decoding and stdout/stderr text chunks.

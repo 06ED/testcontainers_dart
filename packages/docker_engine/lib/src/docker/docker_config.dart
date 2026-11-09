@@ -34,12 +34,14 @@ class DockerConfig({
 
   factory fromEnvironment([Map<String, String>? environment]) {
     final env = environment ?? Platform.environment;
+
     if ((env['DOCKER_TLS_VERIFY'] ?? '').isNotEmpty ||
         (env['DOCKER_CERT_PATH'] ?? '').isNotEmpty) {
       throw UnsupportedError(
         'Docker client-certificate environment settings are not supported; no insecure fallback is used',
       );
     }
+
     var endpoint = env['DOCKER_HOST'];
     if (endpoint == null || endpoint.isEmpty) {
       final desktop = '${env['HOME']}/.docker/run/docker.sock';
@@ -49,6 +51,7 @@ class DockerConfig({
           ? 'unix://$desktop'
           : 'unix:///var/run/docker.sock';
     }
+
     return DockerConfig(
       endpoint: Uri.parse(endpoint),
       host: env['TESTCONTAINERS_HOST_OVERRIDE'],

@@ -69,8 +69,10 @@ class _DockerOutputSink(bool tty, final EventSink<DockerLogChunk> sink)
       combined.write(chunk.text);
     },
   );
+
   decoder.add(bytes);
   decoder.close();
+
   return (stdout: '$stdout', stderr: '$stderr', combined: '$combined');
 }
 
@@ -84,6 +86,7 @@ class _DockerOutputDecoder(final bool tty, void Function(DockerLogChunk) emit) {
             }
           }),
         );
+
     _stdout = sink(DockerLogSource.stdout);
     _stderr = sink(DockerLogSource.stderr);
   }
@@ -99,13 +102,16 @@ class _DockerOutputDecoder(final bool tty, void Function(DockerLogChunk) emit) {
       _stdout.add(bytes);
       return;
     }
+
     var offset = 0;
+
     while (offset < bytes.length) {
       if (_remaining == 0) {
         final end = min(bytes.length, offset + 8 - _header.length);
         _header.addAll(bytes.sublist(offset, end));
         offset = end;
         if (_header.length < 8) break;
+
         _stream = _header[0];
         if ((_stream != 1 && _stream != 2) ||
             _header[1] != 0 ||

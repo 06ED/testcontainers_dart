@@ -85,12 +85,12 @@ void main() {
         await container.terminate();
         expect(server.paths, [
           '/version',
-          '/v1.53/images/redis:7-alpine/json',
-          '/v1.53/images/create',
-          '/v1.53/containers/create',
-          '/v1.53/containers/container-1/start',
-          '/v1.53/containers/container-1/json',
-          '/v1.53/containers/container-1',
+          '/v1.55/images/redis:7-alpine/json',
+          '/v1.55/images/create',
+          '/v1.55/containers/create',
+          '/v1.55/containers/container-1/start',
+          '/v1.55/containers/container-1/json',
+          '/v1.55/containers/container-1',
         ]);
         expect(jsonDecode(server.bodies[3])['Image'], 'redis:7-alpine');
       },
@@ -297,8 +297,8 @@ void main() {
       );
       expect(server.paths, [
         '/version',
-        '/v1.53/images/private/image/json',
-        '/v1.53/images/create',
+        '/v1.55/images/private/image/json',
+        '/v1.55/images/create',
       ]);
       await disconnected.future.timeout(const Duration(seconds: 3));
     });
@@ -370,7 +370,7 @@ void main() {
         if (request.uri.path != '/version') return false;
         await DockerServer.respond(request, {
           'ApiVersion': '1.60',
-          'MinAPIVersion': '1.54',
+          'MinAPIVersion': '1.56',
         });
         return true;
       };
@@ -389,7 +389,7 @@ void main() {
         await container.terminate();
         await container.terminate();
         expect(
-          server.paths.where((path) => path == '/v1.53/containers/container-1'),
+          server.paths.where((path) => path == '/v1.55/containers/container-1'),
           hasLength(1),
         );
       },

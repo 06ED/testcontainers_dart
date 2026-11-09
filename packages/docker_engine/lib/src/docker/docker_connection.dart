@@ -20,6 +20,7 @@ class DockerConnection._(
   static Future<DockerConnection> connect(DockerConfig config) async {
     final io = HttpClient()..connectionTimeout = config.requestTimeout;
     io.findProxy = (_) => 'DIRECT';
+
     final unix = config.endpoint.scheme == 'unix';
     if (unix) {
       io.connectionFactory = (uri, proxyHost, proxyPort) => Socket.startConnect(
@@ -27,6 +28,7 @@ class DockerConnection._(
         0,
       );
     }
+
     final client = _TimeoutClient(IOClient(io), config.requestTimeout);
     final base = unix ? Uri.parse('http://localhost') : config.endpoint;
 
@@ -39,11 +41,12 @@ class DockerConnection._(
       final info = jsonDecode(response.body) as Map<String, dynamic>;
       final version = _version(info['ApiVersion']);
       final minimum = _version(info['MinAPIVersion'] ?? '1.0');
-      const maximum = 1053;
+      const maximum = 1055;
       final selected = version < maximum ? version : maximum;
+
       if (selected < minimum || selected < 1041) {
         throw UnsupportedError(
-          'Docker API must overlap supported versions 1.41–1.53',
+          'Docker API must overlap supported versions 1.41–1.55',
         );
       }
 

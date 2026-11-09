@@ -479,6 +479,7 @@ final class _$Docker extends Docker {
     bool? sharedSize,
     bool? digests,
     bool? manifests,
+    bool? identity,
   }) {
     final Uri $url = Uri.parse('/images/json');
     final Map<String, dynamic> $params = <String, dynamic>{
@@ -487,6 +488,7 @@ final class _$Docker extends Docker {
       'shared-size': sharedSize,
       'digests': digests,
       'manifests': manifests,
+      'identity': identity,
     };
     final Request $request = Request(
       'GET',
@@ -654,6 +656,30 @@ final class _$Docker extends Docker {
       parameters: $params,
     );
     return client.send<ImageInspect, ImageInspect>($request);
+  }
+
+  @override
+  Future<Response<List<AttestationStatement>>> _imagesNameAttestationsGet({
+    required String? name,
+    List<String>? platform,
+    List<String>? type,
+    bool? statement,
+  }) {
+    final Uri $url = Uri.parse('/images/${name}/attestations');
+    final Map<String, dynamic> $params = <String, dynamic>{
+      'platform': platform,
+      'type': type,
+      'statement': statement,
+    };
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+      parameters: $params,
+    );
+    return client.send<List<AttestationStatement>, AttestationStatement>(
+      $request,
+    );
   }
 
   @override

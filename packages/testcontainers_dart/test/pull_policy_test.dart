@@ -61,7 +61,7 @@ void main() {
 
       expect(inspected, ['local/app:test']);
       expect(pulled, isEmpty);
-      expect(server.paths, contains('/v1.53/containers/container-1/start'));
+      expect(server.paths, contains('/v1.55/containers/container-1/start'));
     },
   );
 
@@ -96,7 +96,7 @@ void main() {
     );
     expect(inspected, ['local/app:test']);
     expect(pulled, isEmpty);
-    expect(server.paths, contains('/v1.53/containers/container-1/start'));
+    expect(server.paths, contains('/v1.55/containers/container-1/start'));
   });
 
   test(
