@@ -40,6 +40,24 @@ void main() {
         fail('Ryuk did not remove $ids');
       }
 
+      Future<bool> networkExists(String id) async {
+        final response = await connection.api.networksIdGet(id: id);
+        if (response.statusCode == 404) return false;
+        if (!response.isSuccessful) {
+          throw StateError('Network inspect failed: ${response.statusCode}');
+        }
+        return true;
+      }
+
+      Future<void> networkRemoved(String id) async {
+        final clock = Stopwatch()..start();
+        while (clock.elapsed < const Duration(seconds: 60)) {
+          if (!await networkExists(id)) return;
+          await Future.pause(const Duration(milliseconds: 200));
+        }
+        fail('Ryuk did not remove network $id');
+      }
+
       Future<
         ({Process process, Map<String, dynamic> resource, StringBuffer errors})
       >
@@ -80,6 +98,9 @@ void main() {
               v: true,
             );
           }
+          if (resource['network'] case final String id) {
+            await connection.api.networksIdDelete(id: id);
+          }
         });
         return (process: process, resource: resource, errors: errors);
       }
@@ -93,11 +114,14 @@ void main() {
         victim.process.kill(ProcessSignal.sigkill);
         await victim.process.exitCode;
         await removed([victim.resource['id'], victim.resource['ryuk']]);
+        await networkRemoved(victim.resource['network']);
+        expect(await networkExists(survivor.resource['network']), true);
         expect(await exists(survivor.resource['id']), true);
         expect(await exists(survivor.resource['ryuk']), true);
         survivor.process.kill(ProcessSignal.sigkill);
         await survivor.process.exitCode;
         await removed([survivor.resource['id'], survivor.resource['ryuk']]);
+        await networkRemoved(survivor.resource['network']);
       });
 
       for (final mode in ['close', 'terminate', 'startup-failure']) {
@@ -111,6 +135,9 @@ void main() {
               reason: child.errors.toString(),
             );
             await removed([child.resource['id'], child.resource['ryuk']]);
+            if (child.resource['network'] case final String id) {
+              await networkRemoved(id);
+            }
           },
         );
       }

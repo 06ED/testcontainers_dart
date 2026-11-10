@@ -17,6 +17,7 @@ class DockerConfig({
         'Supported Docker transports: unix, tcp, http, https',
       );
     }
+
     if (endpoint.scheme == 'unix'
         ? !endpoint.path.startsWith('/') || endpoint.path.isEmpty
         : endpoint.host.isEmpty) {
@@ -26,9 +27,11 @@ class DockerConfig({
         'An absolute socket path or hostname is required',
       );
     }
+
     if (requestTimeout <= Duration.zero) {
       throw ArgumentError.value(requestTimeout, 'requestTimeout');
     }
+
     if (this.host.isEmpty) throw ArgumentError.value(host, 'host');
   }
 

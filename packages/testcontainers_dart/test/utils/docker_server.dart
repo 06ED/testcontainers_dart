@@ -5,7 +5,12 @@ class DockerServer(final HttpServer server) {
   this {
     server.listen((request) async {
       paths.add(request.uri.path);
-      bodies.add(await utf8.decoder.bind(request).join());
+      final bytes = await request.fold<List<int>>(
+        [],
+        (bytes, chunk) => bytes..addAll(chunk),
+      );
+      rawBodies.add(bytes);
+      bodies.add(utf8.decode(bytes, allowMalformed: true));
 
       if (handler != null && await handler!(request)) return;
       final path = request.uri.path;
@@ -55,6 +60,7 @@ class DockerServer(final HttpServer server) {
 
   final paths = <String>[];
   final bodies = <String>[];
+  final rawBodies = <List<int>>[];
   String apiVersion = '1.56';
   Future<bool> Function(HttpRequest request)? handler;
 

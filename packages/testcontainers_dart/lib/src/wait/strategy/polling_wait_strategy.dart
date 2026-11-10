@@ -46,14 +46,15 @@ class PollingWait(
         if (await check(container, info, remaining).timeout(remaining)) return;
       } on SocketException catch (error) {
         lastError = error;
-      } on HttpException catch (error) {
-        lastError = error;
       } on TimeoutException catch (error) {
+        lastError = error;
+      } on HttpException catch (error) {
         lastError = error;
       }
 
       final remaining = timeout - clock.elapsed;
       if (remaining <= Duration.zero) break;
+
       await Future.pause(interval < remaining ? interval : remaining);
     }
 

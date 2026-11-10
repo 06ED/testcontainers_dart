@@ -1,3 +1,8 @@
+## Unreleased
+
+- Add cancellable, streaming binary `Docker.getArchive()` and `putArchive()` with
+  request timeouts, without generated String conversion or full-body buffering.
+
 ## 0.2.0
 
 - Regenerate the client from Docker Engine API v1.55 and negotiate API 1.41–1.55.

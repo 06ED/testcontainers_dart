@@ -46,6 +46,30 @@ Future<void> main() async {
 - Generated `Docker` methods and response models are exported publicly. Prefix
   the import to avoid collisions between Docker model names and SDK types.
 
+### Binary archives
+
+Use the handwritten binary methods instead of the generated String-based TAR upload:
+
+```dart
+await connection.api.putArchive(
+  id: containerId,
+  path: '/tmp',
+  archive: File('input.tar').openRead(),
+);
+await connection.api
+    .getArchive(id: containerId, path: '/tmp/result')
+    .pipe(File('result.tar').openWrite());
+```
+
+Import `dart:io` for this example. Both methods stream bytes over the configured
+transport and negotiated API version. `putArchive` preserves archive UID/GID and
+forbids replacing directories with non-directories. The destination directory
+must exist. Download cancellation aborts only that request; connection close
+aborts all active archive and log requests. The entire archive transfer is bounded
+by `requestTimeout`, including upload, response body and paused time. HTTP errors
+retain their status but omit response bodies, which may contain sensitive data.
+This layer does not encode, extract or validate the TAR itself.
+
 The connection negotiates Docker API **1.41–1.55**. HTTPS uses system-trusted server
 certificates. Client-certificate environment settings, SSH, named pipes, Docker CLI
 contexts and registry authentication are not implemented. Never expose unencrypted

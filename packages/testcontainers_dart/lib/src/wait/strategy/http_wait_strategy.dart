@@ -33,8 +33,9 @@ Wait createHttpWaitStrategy({
           host: container.host,
           port: await container.mappedPort(port),
         ).resolve(path);
-        final request = await client.getUrl(url);
-        request.followRedirects = false;
+        final request = await client.getUrl(url)
+          ..followRedirects = false;
+
         final response = await request.close().timeout(remaining);
         return response.statusCode == statusCode;
       } finally {

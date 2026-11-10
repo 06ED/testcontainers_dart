@@ -53,7 +53,7 @@ An omitted tag means `latest`; prefer an explicit version for reproducible tests
 ## Container configuration
 
 `ContainerConfig` accepts an image, optional name, environment variables, command,
-TCP/UDP ports, labels, bind mounts and a readiness strategy:
+TCP/UDP ports, labels, bind mounts, files, a managed network and a readiness strategy:
 
 ```dart
 final config = ContainerConfig(
@@ -96,6 +96,89 @@ images. A cached application image and Ryuk image allow startup without registry
 access. `ifNotPresent` does not check for updated tags; use `always` to refresh them.
 For `ifNotPresent`, only an image-inspect 404 triggers a pull; permission, daemon
 and connection errors are propagated instead of falling back to the registry.
+
+## Networks and container DNS
+
+Use one provider for containers sharing a managed bridge network. Aliases resolve
+inside that network; internal service ports do not need host publication:
+
+```dart
+final provider = await DockerProvider.connect();
+addTearDown(provider.close);
+final network = await provider.createNetwork();
+addTearDown(network.terminate);
+
+final database = await provider.start(
+  ContainerConfig(
+    image: 'postgres:17-alpine',
+    network: network,
+    networkAliases: ['database'],
+    environment: {'POSTGRES_PASSWORD': 'test'},
+    files: [
+      ContainerFile.fromPath(
+        'fixtures/init.sql',
+        '/docker-entrypoint-initdb.d/001-init.sql',
+      ),
+    ],
+    waitStrategy: .forSuccessfulCommand(['pg_isready', '-U', 'postgres']),
+  ),
+);
+addTearDown(database.terminate);
+
+final client = await provider.start(
+  ContainerConfig(
+    image: 'postgres:17-alpine',
+    network: network,
+    command: ['sleep', '300'],
+    waitStrategy: .forSuccessfulCommand([
+      'pg_isready', '-h', 'database', '-U', 'postgres',
+    ]),
+  ),
+);
+addTearDown(client.terminate);
+```
+
+Containers and networks share session labels. With Ryuk enabled, provider close
+or process death triggers cleanup of both. Remove containers before calling
+`network.terminate()` for immediate cleanup; an in-use network is not forcibly
+disconnected, and failed removal can be retried. A network cannot be passed to a
+different provider or reused after removal. With Ryuk disabled, explicitly remove
+containers and networks before closing the provider.
+
+HTTP/TCP waits connect through published host ports. For services without host
+bindings, use a healthcheck, log wait or command executed inside a container.
+
+## Copying files
+
+`ContainerConfig.files` uploads regular files after container creation and before
+its process starts. A copy failure removes the container without starting it.
+Local paths are read on the **Dart client's machine**, including with remote Docker:
+
+```dart
+ContainerFile.fromPath('fixtures/init.sql', '/tmp/init.sql');
+ContainerFile.fromBytes(certificateBytes, '/tmp/client.crt', mode: 0x180); // 0600
+```
+
+Targets must be absolute POSIX file paths; their parent directories must already
+exist in the image. Existing regular files may be overwritten, but directories
+are not replaced with files. `mode` defaults to `0x1a4` (0644), and `uid`/`gid`
+default to 0; use explicit permissions for private keys. Local symlinks and
+directories are not accepted as sources.
+
+Retrieve one regular file while a container is running or stopped, before removal:
+
+```dart
+await container.copyFileFromContainer('/tmp/report.json', 'artifacts/report.json');
+```
+
+Transfers stream TAR data without buffering the complete file. Downloads go to a
+temporary file beside the destination and replace it only after validating the
+archive and finishing the HTTP response. A failure preserves the existing file;
+archive filenames are never used as local extraction paths. Links, directories
+and multi-file archives are rejected. Downloaded files use 0600 permissions on
+POSIX (requires `/bin/chmod`); on Windows they inherit local filesystem ACLs.
+File contents and raw archive errors are omitted from copy diagnostics.
+`DockerConfig.requestTimeout` bounds the entire transfer, including paused time.
 
 ## Waiting for readiness
 
@@ -204,6 +287,50 @@ With cleanup enabled, `provider.close()` schedules removal of any remaining
 containers; it does not wait for that removal. Use `terminate()` for immediate
 cleanup. Always close shared providers to allow the Dart process to exit.
 
+## Private registries
+
+Application and Ryuk images share the same credential resolution. Pass credentials
+by registry address (including its port), not by image name:
+
+```dart
+final provider = await DockerProvider.connect(
+  registryCredentials: {
+    'registry.example.com:5000': RegistryCredentials(
+      username: 'ci',
+      password: registryToken,
+    ),
+  },
+);
+```
+
+`Testcontainers.run()` and the injected-API `DockerProvider` constructor accept the
+same parameter. Use `RegistryCredentials.identityToken(token)` for identity tokens.
+
+Credentials are resolved for each registry, in order:
+
+1. Explicit `registryCredentials`.
+2. JSON from `DOCKER_AUTH_CONFIG`.
+3. `$DOCKER_CONFIG/config.json`, or `~/.docker/config.json` when unset.
+4. Anonymous pull if no credentials are found.
+
+Within a config, `credHelpers[registry]` takes precedence over `credsStore`, which
+takes precedence over inline `auths`. Helpers run on the Dart client's machine
+as `docker-credential-<name> get` using `PATH`; Docker CLI itself is not required.
+Both configs support Base64 `auth`, username/password and `identitytoken` entries.
+Docker Hub aliases are recognized, including `https://index.docker.io/v1/`.
+
+Missing files or credentials allow fallback. Invalid configuration, unreadable
+files and helper failures raise `RegistryAuthException`; a selected helper does
+not fall back to stale inline passwords. Helpers have a 10-second timeout and
+a 1 MiB limit on each output pipe. Credentials are not cached or written to disk.
+Local images satisfying the pull policy do not read credentials or run helpers.
+
+Credentials go only in the pull request's `X-Registry-Auth`, never in container
+configuration. Authenticated pull errors retain HTTP status but omit raw response
+text, and resolver errors omit secret input and helper output. Custom HTTP
+interceptors/loggers must also avoid logging this header. Base64 is not encryption:
+use a trusted Unix socket or verified HTTPS for the Docker connection.
+
 ## Docker connection
 
 Local Docker is detected automatically. Override connection settings with:
@@ -278,8 +405,10 @@ dart run examples/testcontainers/bin/testcontainers_example.dart
 
 ## Current limitations
 
-- No registry authentication, Docker client-certificate environment settings,
-  SSH, Windows named pipes, Compose, image builds, file copy, network management
-  or container reuse.
+- No Docker client-certificate environment settings,
+  SSH, Windows named pipes, Compose, image builds or container reuse.
+- File copying supports individual regular files, not recursive directories or
+  links. Networking supports one managed bridge network per container, not
+  attaching existing networks or runtime connect/disconnect.
 - A readiness timeout does not cancel an already running exec command;
   startup-failure cleanup removes the container instead.

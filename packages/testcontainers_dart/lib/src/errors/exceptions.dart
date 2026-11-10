@@ -1,5 +1,19 @@
 import 'dart:async';
 
+class FileCopyException(final String message, {final int? statusCode})
+    implements Exception {
+  @override
+  String toString() =>
+      'FileCopyException${statusCode == null ? '' : ' ($statusCode)'}: $message';
+}
+
+class NetworkCreateException(final Object cause, final Object cleanupError)
+    implements Exception {
+  @override
+  String toString() =>
+      'Network creation failed: $cause; cleanup failed: $cleanupError';
+}
+
 class WaitTimeoutException(
   String strategy,
   Duration timeout,

@@ -1,4 +1,6 @@
+// coverage:ignore-file
 // ignore_for_file: type=lint
+// ignore_for_file: unused_element_parameter
 
 import 'package:json_annotation/json_annotation.dart';
 import 'package:json_annotation/json_annotation.dart' as json;
@@ -17,6 +19,7 @@ import 'package:http/http.dart' show MultipartFile;
 import 'package:chopper/chopper.dart' as chopper;
 
 import 'docker.enums.swagger.dart' as enums;
+import 'docker.metadata.swagger.dart';
 export 'docker.enums.swagger.dart';
 
 part 'docker.swagger.chopper.dart';
@@ -88,6 +91,24 @@ abstract class Docker extends ChopperService {
     @Query('limit') int? limit,
     @Query('size') bool? size,
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description:
+          '''Returns a list of containers. For details on the format, see the
+[inspect endpoint](#operation/ContainerInspect).
+
+Note that it uses a different, smaller representation of a container
+than inspecting a single container. For example, the list of linked
+containers is not propagated .
+''',
+      summary: 'List containers',
+      operationId: 'ContainerList',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Create a container
@@ -116,6 +137,17 @@ abstract class Docker extends ChopperService {
     @Query('name') String? name,
     @Query('platform') String? platform,
     @Body() required Object? body,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Create a container',
+      operationId: 'ContainerCreate',
+      consumes: ["application/json", "application/octet-stream"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Inspect a container
@@ -140,6 +172,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response<ContainerInspectResponse>> _containersIdJsonGet({
     @Path('id') required String? id,
     @Query('size') bool? size,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Return low-level information about a container.',
+      summary: 'Inspect a container',
+      operationId: 'ContainerInspect',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///List processes running inside a container
@@ -164,6 +207,19 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response<ContainerTopResponse>> _containersIdTopGet({
     @Path('id') required String? id,
     @Query('ps_args') String? psArgs,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''On Unix systems, this is done by running the `ps` command. This endpoint
+is not supported on Windows.
+''',
+      summary: 'List processes running inside a container',
+      operationId: 'ContainerTop',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Get container logs
@@ -216,9 +272,27 @@ abstract class Docker extends ChopperService {
     @Query('until') int? until,
     @Query('timestamps') bool? timestamps,
     @Query('tail') String? tail,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Get `stdout` and `stderr` logs from a container.
+
+Note: This endpoint works only for containers with the `json-file` or
+`journald` logging driver.
+''',
+      summary: 'Get container logs',
+      operationId: 'ContainerLogs',
+      consumes: [],
+      produces: [
+        "application/vnd.docker.raw-stream",
+        "application/vnd.docker.multiplexed-stream",
+      ],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
-  ///Get changes on a containerâs filesystem
+  ///Get changes on a container’s filesystem
   ///@param id ID or name of the container
   Future<chopper.Response<List<FilesystemChange>>> containersIdChangesGet({
     required String? id,
@@ -231,11 +305,28 @@ abstract class Docker extends ChopperService {
     return _containersIdChangesGet(id: id);
   }
 
-  ///Get changes on a containerâs filesystem
+  ///Get changes on a container’s filesystem
   ///@param id ID or name of the container
   @GET(path: '/containers/{id}/changes')
   Future<chopper.Response<List<FilesystemChange>>> _containersIdChangesGet({
     @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Returns which files in a container\'s filesystem have been added, deleted,
+or modified. The `Kind` of modification can be one of:
+
+- `0`: Modified ("C")
+- `1`: Added ("A")
+- `2`: Deleted ("D")
+''',
+      summary: 'Get changes on a container’s filesystem',
+      operationId: 'ContainerChanges',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Export a container
@@ -249,6 +340,17 @@ abstract class Docker extends ChopperService {
   @GET(path: '/containers/{id}/export')
   Future<chopper.Response> _containersIdExportGet({
     @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Export the contents of a container as a tarball.',
+      summary: 'Export a container',
+      operationId: 'ContainerExport',
+      consumes: [],
+      produces: ["application/octet-stream"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Get container stats based on resource usage
@@ -277,6 +379,45 @@ abstract class Docker extends ChopperService {
     @Path('id') required String? id,
     @Query('stream') bool? stream,
     @Query('one-shot') bool? oneShot,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description:
+          '''This endpoint returns a live stream of a container’s resource usage
+statistics.
+
+The `precpu_stats` is the CPU statistic of the *previous* read, and is
+used to calculate the CPU usage percentage. It is not an exact copy
+of the `cpu_stats` field.
+
+If either `precpu_stats.online_cpus` or `cpu_stats.online_cpus` is
+nil then for compatibility with older daemons the length of the
+corresponding `cpu_usage.percpu_usage` array should be used.
+
+On a cgroup v2 host, the following fields are not set
+* `blkio_stats`: all fields other than `io_service_bytes_recursive`
+* `cpu_stats`: `cpu_usage.percpu_usage`
+* `memory_stats`: `max_usage` and `failcnt`
+Also, `memory_stats.stats` fields are incompatible with cgroup v1.
+
+To calculate the values shown by the `stats` command of the docker cli tool
+the following formulas can be used:
+* used_memory = `memory_stats.usage - memory_stats.stats.cache` (cgroups v1)
+* used_memory = `memory_stats.usage - memory_stats.stats.inactive_file` (cgroups v2)
+* available_memory = `memory_stats.limit`
+* Memory usage % = `(used_memory / available_memory) * 100.0`
+* cpu_delta = `cpu_stats.cpu_usage.total_usage - precpu_stats.cpu_usage.total_usage`
+* system_cpu_delta = `cpu_stats.system_cpu_usage - precpu_stats.system_cpu_usage`
+* number_cpus = `length(cpu_stats.cpu_usage.percpu_usage)` or `cpu_stats.online_cpus`
+* CPU usage % = `(cpu_delta / system_cpu_delta) * number_cpus * 100.0`
+''',
+      summary: 'Get container stats based on resource usage',
+      operationId: 'ContainerStats',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Resize a container TTY
@@ -300,6 +441,17 @@ abstract class Docker extends ChopperService {
     @Path('id') required String? id,
     @Query('h') required int? h,
     @Query('w') required int? w,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Resize the TTY for a container.',
+      summary: 'Resize a container TTY',
+      operationId: 'ContainerResize',
+      consumes: ["application/octet-stream"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Start a container
@@ -319,6 +471,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response> _containersIdStartPost({
     @Path('id') required String? id,
     @Query('detachKeys') String? detachKeys,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Start a container',
+      operationId: 'ContainerStart',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Stop a container
@@ -342,6 +505,17 @@ abstract class Docker extends ChopperService {
     @Path('id') required String? id,
     @Query('signal') String? signal,
     @Query('t') int? t,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Stop a container',
+      operationId: 'ContainerStop',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Restart a container
@@ -365,6 +539,17 @@ abstract class Docker extends ChopperService {
     @Path('id') required String? id,
     @Query('signal') String? signal,
     @Query('t') int? t,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Restart a container',
+      operationId: 'ContainerRestart',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Kill a container
@@ -384,6 +569,20 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response> _containersIdKillPost({
     @Path('id') required String? id,
     @Query('signal') String? signal,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description:
+          '''Send a POSIX signal to a container, defaulting to killing to the
+container.
+''',
+      summary: 'Kill a container',
+      operationId: 'ContainerKill',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Update a container
@@ -408,6 +607,19 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response<ContainerUpdateResponse>> _containersIdUpdatePost({
     @Path('id') required String? id,
     @Body() required Object? update,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Change various configuration options of a container without having to
+recreate it.
+''',
+      summary: 'Update a container',
+      operationId: 'ContainerUpdate',
+      consumes: ["application/json"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Rename a container
@@ -427,6 +639,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response> _containersIdRenamePost({
     @Path('id') required String? id,
     @Query('name') required String? name,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Rename a container',
+      operationId: 'ContainerRename',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Pause a container
@@ -440,6 +663,24 @@ abstract class Docker extends ChopperService {
   @POST(path: '/containers/{id}/pause', optionalBody: true)
   Future<chopper.Response> _containersIdPausePost({
     @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description:
+          '''Use the freezer cgroup to suspend all processes in a container.
+
+Traditionally, when suspending a process the `SIGSTOP` signal is used,
+which is observable by the process being suspended. With the freezer
+cgroup the process is unaware, and unable to capture, that it is being
+suspended, and subsequently resumed.
+''',
+      summary: 'Pause a container',
+      operationId: 'ContainerPause',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Unpause a container
@@ -453,6 +694,17 @@ abstract class Docker extends ChopperService {
   @POST(path: '/containers/{id}/unpause', optionalBody: true)
   Future<chopper.Response> _containersIdUnpausePost({
     @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Resume a container which has been paused.',
+      summary: 'Unpause a container',
+      operationId: 'ContainerUnpause',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Attach to a container
@@ -500,6 +752,114 @@ abstract class Docker extends ChopperService {
     @Query('stdin') bool? stdin,
     @Query('stdout') bool? stdout,
     @Query('stderr') bool? stderr,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Attach to a container to read its output or send it input. You can attach
+to the same container multiple times and you can reattach to containers
+that have been detached.
+
+Either the `stream` or `logs` parameter must be `true` for this endpoint
+to do anything.
+
+See the [documentation for the `docker attach` command](https://docs.docker.com/engine/reference/commandline/attach/)
+for more details.
+
+### Hijacking
+
+This endpoint hijacks the HTTP connection to transport `stdin`, `stdout`,
+and `stderr` on the same socket.
+
+This is the response from the daemon for an attach request:
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/vnd.docker.raw-stream
+
+[STREAM]
+```
+
+After the headers and two new lines, the TCP connection can now be used
+for raw, bidirectional communication between the client and server.
+
+To hint potential proxies about connection hijacking, the Docker client
+can also optionally send connection upgrade headers.
+
+For example, the client sends this request to upgrade the connection:
+
+```
+POST /containers/16253994b7c4/attach?stream=1&stdout=1 HTTP/1.1
+Upgrade: tcp
+Connection: Upgrade
+```
+
+The Docker daemon will respond with a `101 UPGRADED` response, and will
+similarly follow with the raw stream:
+
+```
+HTTP/1.1 101 UPGRADED
+Content-Type: application/vnd.docker.raw-stream
+Connection: Upgrade
+Upgrade: tcp
+
+[STREAM]
+```
+
+### Stream format
+
+When the TTY setting is disabled in [`POST /containers/create`](#operation/ContainerCreate),
+the HTTP Content-Type header is set to application/vnd.docker.multiplexed-stream
+and the stream over the hijacked connected is multiplexed to separate out
+`stdout` and `stderr`. The stream consists of a series of frames, each
+containing a header and a payload.
+
+The header contains the information which the stream writes (`stdout` or
+`stderr`). It also contains the size of the associated frame encoded in
+the last four bytes (`uint32`).
+
+It is encoded on the first eight bytes like this:
+
+```go
+header := [8]byte{STREAM_TYPE, 0, 0, 0, SIZE1, SIZE2, SIZE3, SIZE4}
+```
+
+`STREAM_TYPE` can be:
+
+- 0: `stdin` (is written on `stdout`)
+- 1: `stdout`
+- 2: `stderr`
+
+`SIZE1, SIZE2, SIZE3, SIZE4` are the four bytes of the `uint32` size
+encoded as big endian.
+
+Following the header is the payload, which is the specified number of
+bytes of `STREAM_TYPE`.
+
+The simplest way to implement this protocol is the following:
+
+1. Read 8 bytes.
+2. Choose `stdout` or `stderr` depending on the first byte.
+3. Extract the frame size from the last four bytes.
+4. Read the extracted size and output it on the correct output.
+5. Goto 1.
+
+### Stream format when using a TTY
+
+When the TTY setting is enabled in [`POST /containers/create`](#operation/ContainerCreate),
+the stream is not multiplexed. The data exchanged over the hijacked
+connection is simply the raw data from the process PTY and client\'s
+`stdin`.
+''',
+      summary: 'Attach to a container',
+      operationId: 'ContainerAttach',
+      consumes: [],
+      produces: [
+        "application/vnd.docker.raw-stream",
+        "application/vnd.docker.multiplexed-stream",
+      ],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Attach to a container via a websocket
@@ -547,6 +907,17 @@ abstract class Docker extends ChopperService {
     @Query('stdin') bool? stdin,
     @Query('stdout') bool? stdout,
     @Query('stderr') bool? stderr,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Attach to a container via a websocket',
+      operationId: 'ContainerAttachWebsocket',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Wait for a container
@@ -574,6 +945,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response<ContainerWaitResponse>> _containersIdWaitPost({
     @Path('id') required String? id,
     @Query('condition') String? condition,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Block until a container stops, then returns the exit code.',
+      summary: 'Wait for a container',
+      operationId: 'ContainerWait',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Remove a container
@@ -601,11 +983,22 @@ abstract class Docker extends ChopperService {
     @Query('v') bool? v,
     @Query('force') bool? force,
     @Query('link') bool? link,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Remove a container',
+      operationId: 'ContainerDelete',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Get information about files in a container
   ///@param id ID or name of the container
-  ///@param path Resource in the containerâs filesystem to archive.
+  ///@param path Resource in the container’s filesystem to archive.
   Future<chopper.Response> containersIdArchiveHead({
     required String? id,
     required String? path,
@@ -615,16 +1008,30 @@ abstract class Docker extends ChopperService {
 
   ///Get information about files in a container
   ///@param id ID or name of the container
-  ///@param path Resource in the containerâs filesystem to archive.
+  ///@param path Resource in the container’s filesystem to archive.
   @HEAD(path: '/containers/{id}/archive')
   Future<chopper.Response> _containersIdArchiveHead({
     @Path('id') required String? id,
     @Query('path') required String? path,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''A response header `X-Docker-Container-Path-Stat` is returned, containing
+a base64 - encoded JSON object with some filesystem header information
+about the path.
+''',
+      summary: 'Get information about files in a container',
+      operationId: 'ContainerArchiveInfo',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Get an archive of a filesystem resource in a container
   ///@param id ID or name of the container
-  ///@param path Resource in the containerâs filesystem to archive.
+  ///@param path Resource in the container’s filesystem to archive.
   Future<chopper.Response> containersIdArchiveGet({
     required String? id,
     required String? path,
@@ -634,16 +1041,28 @@ abstract class Docker extends ChopperService {
 
   ///Get an archive of a filesystem resource in a container
   ///@param id ID or name of the container
-  ///@param path Resource in the containerâs filesystem to archive.
+  ///@param path Resource in the container’s filesystem to archive.
   @GET(path: '/containers/{id}/archive')
   Future<chopper.Response> _containersIdArchiveGet({
     @Path('id') required String? id,
     @Query('path') required String? path,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description:
+          'Get a tar archive of a resource in the filesystem of container id.',
+      summary: 'Get an archive of a filesystem resource in a container',
+      operationId: 'ContainerArchive',
+      consumes: [],
+      produces: ["application/x-tar"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Extract an archive of files or folders to a directory in a container
   ///@param id ID or name of the container
-  ///@param path Path to a directory in the container to extract the archiveâs contents into.
+  ///@param path Path to a directory in the container to extract the archive’s contents into.
   ///@param noOverwriteDirNonDir If `1`, `true`, or `True` then it will be an error if unpacking the given content would cause an existing directory to be replaced with a non-directory and vice versa.
   ///@param copyUIDGID If `1`, `true`, then it will copy UID/GID maps to the dest file or dir
   ///@param inputStream The input stream must be a tar archive compressed with one of the following algorithms: `identity` (no compression), `gzip`, `bzip2`, or `xz`.
@@ -665,7 +1084,7 @@ abstract class Docker extends ChopperService {
 
   ///Extract an archive of files or folders to a directory in a container
   ///@param id ID or name of the container
-  ///@param path Path to a directory in the container to extract the archiveâs contents into.
+  ///@param path Path to a directory in the container to extract the archive’s contents into.
   ///@param noOverwriteDirNonDir If `1`, `true`, or `True` then it will be an error if unpacking the given content would cause an existing directory to be replaced with a non-directory and vice versa.
   ///@param copyUIDGID If `1`, `true`, then it will copy UID/GID maps to the dest file or dir
   ///@param inputStream The input stream must be a tar archive compressed with one of the following algorithms: `identity` (no compression), `gzip`, `bzip2`, or `xz`.
@@ -676,10 +1095,24 @@ abstract class Docker extends ChopperService {
     @Query('noOverwriteDirNonDir') String? noOverwriteDirNonDir,
     @Query('copyUIDGID') String? copyUIDGID,
     @Body() required String? inputStream,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Upload a tar archive to be extracted to a path in the filesystem of container id.
+`path` parameter is asserted to be a directory. If it exists as a file, 400 error
+will be returned with message "not a directory".
+''',
+      summary: 'Extract an archive of files or folders to a directory in a container',
+      operationId: 'PutContainerArchive',
+      consumes: ["application/x-tar", "application/octet-stream"],
+      produces: [],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///Delete stopped containers
-  ///@param filters Filters to process on the prune list, encoded as JSON (a `map[string][]string`).  Available filters: - `until=<timestamp>` Prune containers created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machineâs time. - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune containers with (or without, in case `label!=...` is used) the specified labels.
+  ///@param filters Filters to process on the prune list, encoded as JSON (a `map[string][]string`).  Available filters: - `until=<timestamp>` Prune containers created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time. - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune containers with (or without, in case `label!=...` is used) the specified labels.
   Future<chopper.Response<ContainersPrunePost$Response>> containersPrunePost({
     String? filters,
   }) {
@@ -692,10 +1125,21 @@ abstract class Docker extends ChopperService {
   }
 
   ///Delete stopped containers
-  ///@param filters Filters to process on the prune list, encoded as JSON (a `map[string][]string`).  Available filters: - `until=<timestamp>` Prune containers created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machineâs time. - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune containers with (or without, in case `label!=...` is used) the specified labels.
+  ///@param filters Filters to process on the prune list, encoded as JSON (a `map[string][]string`).  Available filters: - `until=<timestamp>` Prune containers created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time. - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune containers with (or without, in case `label!=...` is used) the specified labels.
   @POST(path: '/containers/prune', optionalBody: true)
   Future<chopper.Response<ContainersPrunePost$Response>> _containersPrunePost({
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Delete stopped containers',
+      operationId: 'ContainerPrune',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Container"],
+      deprecated: false,
+    ),
   });
 
   ///List Images
@@ -743,6 +1187,17 @@ abstract class Docker extends ChopperService {
     @Query('digests') bool? digests,
     @Query('manifests') bool? manifests,
     @Query('identity') bool? identity,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Returns a list of images on the server. Note that it uses a different, smaller representation of an image than inspecting a single image.',
+      summary: 'List Images',
+      operationId: 'ImageList',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Build an image
@@ -750,7 +1205,7 @@ abstract class Docker extends ChopperService {
   ///@param dockerfile Path within the build context to the `Dockerfile`. This is ignored if `remote` is specified and points to an external `Dockerfile`.
   ///@param t A name and optional tag to apply to the image in the `name:tag` format. If you omit the tag the default `latest` value is assumed. You can provide several `t` parameters.
   ///@param extrahosts Extra hosts to add to /etc/hosts
-  ///@param remote A Git repository URI or HTTP/HTTPS context URI. If the URI points to a single text file, the fileâs contents are placed into a file called `Dockerfile` and the image is built from that file. If the URI points to a tarball, the file is downloaded by the daemon and the contents therein used as the context for the build. If the URI points to a tarball and the `dockerfile` parameter is also specified, there must be a file with the corresponding path inside the tarball.
+  ///@param remote A Git repository URI or HTTP/HTTPS context URI. If the URI points to a single text file, the file’s contents are placed into a file called `Dockerfile` and the image is built from that file. If the URI points to a tarball, the file is downloaded by the daemon and the contents therein used as the context for the build. If the URI points to a tarball and the `dockerfile` parameter is also specified, there must be a file with the corresponding path inside the tarball.
   ///@param q Suppress verbose build output.
   ///@param nocache Do not use the cache when building the image.
   ///@param cachefrom JSON array of images used for build cache resolution.
@@ -841,7 +1296,7 @@ abstract class Docker extends ChopperService {
   ///@param dockerfile Path within the build context to the `Dockerfile`. This is ignored if `remote` is specified and points to an external `Dockerfile`.
   ///@param t A name and optional tag to apply to the image in the `name:tag` format. If you omit the tag the default `latest` value is assumed. You can provide several `t` parameters.
   ///@param extrahosts Extra hosts to add to /etc/hosts
-  ///@param remote A Git repository URI or HTTP/HTTPS context URI. If the URI points to a single text file, the fileâs contents are placed into a file called `Dockerfile` and the image is built from that file. If the URI points to a tarball, the file is downloaded by the daemon and the contents therein used as the context for the build. If the URI points to a tarball and the `dockerfile` parameter is also specified, there must be a file with the corresponding path inside the tarball.
+  ///@param remote A Git repository URI or HTTP/HTTPS context URI. If the URI points to a single text file, the file’s contents are placed into a file called `Dockerfile` and the image is built from that file. If the URI points to a tarball, the file is downloaded by the daemon and the contents therein used as the context for the build. If the URI points to a tarball and the `dockerfile` parameter is also specified, there must be a file with the corresponding path inside the tarball.
   ///@param q Suppress verbose build output.
   ///@param nocache Do not use the cache when building the image.
   ///@param cachefrom JSON array of images used for build cache resolution.
@@ -895,6 +1350,25 @@ abstract class Docker extends ChopperService {
     @Query('target') String? target,
     @Query('outputs') String? outputs,
     @Query('version') String? version,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description:
+          '''Build an image from a tar archive with a `Dockerfile` in it.
+
+The `Dockerfile` specifies how the image is built from the tar archive. It is typically in the archive\'s root, but can be at a different path or have a different name by specifying the `dockerfile` parameter. [See the `Dockerfile` reference for more information](https://docs.docker.com/engine/reference/builder/).
+
+The Docker daemon performs a preliminary validation of the `Dockerfile` before starting the build, and returns an error if the syntax is incorrect. After that, each instruction is run one-by-one until the ID of the new image is output.
+
+The build is canceled if the client drops the connection by quitting or being killed.
+''',
+      summary: 'Build an image',
+      operationId: 'ImageBuild',
+      consumes: ["application/octet-stream"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Delete builder cache
@@ -937,6 +1411,17 @@ abstract class Docker extends ChopperService {
     @Query('min-free-space') int? minFreeSpace,
     @Query('all') bool? all,
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Delete builder cache',
+      operationId: 'BuildPrune',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Create an image
@@ -994,6 +1479,17 @@ abstract class Docker extends ChopperService {
     @Header('X-Registry-Auth') String? xRegistryAuth,
     @Query('changes') List<String>? changes,
     @Query('platform') String? platform,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Pull or import an image.',
+      summary: 'Create an image',
+      operationId: 'ImageCreate',
+      consumes: ["text/plain", "application/octet-stream"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Inspect an image
@@ -1026,6 +1522,17 @@ abstract class Docker extends ChopperService {
     @Path('name') required String? name,
     @Query('manifests') bool? manifests,
     @Query('platform') String? platform,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Return low-level information about an image.',
+      summary: 'Inspect an image',
+      operationId: 'ImageInspect',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Get attestation statements for an image
@@ -1065,6 +1572,24 @@ abstract class Docker extends ChopperService {
     @Query('platform') List<String>? platform,
     @Query('type') List<String>? type,
     @Query('statement') bool? statement,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Return the in-toto attestation statements attached to the image for the
+given platform. The daemon locates the attestation manifest(s) that
+reference the matching platform image manifest, reads their statement
+layers, and returns the verbatim statement JSON together with layer
+metadata.
+
+If the image has no attestations an empty array is returned.
+''',
+      summary: 'Get attestation statements for an image',
+      operationId: 'ImageAttestations',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Get the history of an image
@@ -1088,6 +1613,17 @@ abstract class Docker extends ChopperService {
   _imagesNameHistoryGet({
     @Path('name') required String? name,
     @Query('platform') String? platform,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Return parent layers of an image.',
+      summary: 'Get the history of an image',
+      operationId: 'ImageHistory',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Push an image
@@ -1120,6 +1656,24 @@ abstract class Docker extends ChopperService {
     @Query('tag') String? tag,
     @Query('platform') String? platform,
     @Header('X-Registry-Auth') String? xRegistryAuth,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Push an image to a registry.
+
+If you wish to push an image on to a private registry, that image must
+already have a tag which references the registry. For example,
+`registry.example.com/myimage:latest`.
+
+The push is cancelled if the HTTP connection is closed.
+''',
+      summary: 'Push an image',
+      operationId: 'ImagePush',
+      consumes: ["application/octet-stream"],
+      produces: [],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Tag an image
@@ -1143,6 +1697,22 @@ abstract class Docker extends ChopperService {
     @Path('name') required String? name,
     @Query('repo') String? repo,
     @Query('tag') String? tag,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Create a tag that refers to a source image.
+
+This creates an additional reference (tag) to the source image. The tag
+can include a different repository name and/or tag. If the repository
+or tag already exists, it will be overwritten.
+''',
+      summary: 'Tag an image',
+      operationId: 'ImageTag',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Remove an image
@@ -1180,6 +1750,23 @@ abstract class Docker extends ChopperService {
     @Query('force') bool? force,
     @Query('noprune') bool? noprune,
     @Query('platforms') List<String>? platforms,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description:
+          '''Remove an image, along with any untagged parent images that were
+referenced by that image.
+
+Images can\'t be removed if they have descendant images, are being
+used by a running container or are being used by a build.
+''',
+      summary: 'Remove an image',
+      operationId: 'ImageDelete',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Search images
@@ -1203,10 +1790,21 @@ abstract class Docker extends ChopperService {
     @Query('term') required String? term,
     @Query('limit') int? limit,
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Search for an image on Docker Hub.',
+      summary: 'Search images',
+      operationId: 'ImageSearch',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Delete unused images
-  ///@param filters Filters to process on the prune list, encoded as JSON (a `map[string][]string`). Available filters:  - `dangling=<boolean>` When set to `true` (or `1`), prune only    unused *and* untagged images. When set to `false`    (or `0`), all unused images are pruned. - `until=<string>` Prune images created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machineâs time. - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune images with (or without, in case `label!=...` is used) the specified labels.
+  ///@param filters Filters to process on the prune list, encoded as JSON (a `map[string][]string`). Available filters:  - `dangling=<boolean>` When set to `true` (or `1`), prune only    unused *and* untagged images. When set to `false`    (or `0`), all unused images are pruned. - `until=<string>` Prune images created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time. - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune images with (or without, in case `label!=...` is used) the specified labels.
   Future<chopper.Response<ImagesPrunePost$Response>> imagesPrunePost({
     String? filters,
   }) {
@@ -1219,10 +1817,21 @@ abstract class Docker extends ChopperService {
   }
 
   ///Delete unused images
-  ///@param filters Filters to process on the prune list, encoded as JSON (a `map[string][]string`). Available filters:  - `dangling=<boolean>` When set to `true` (or `1`), prune only    unused *and* untagged images. When set to `false`    (or `0`), all unused images are pruned. - `until=<string>` Prune images created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machineâs time. - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune images with (or without, in case `label!=...` is used) the specified labels.
+  ///@param filters Filters to process on the prune list, encoded as JSON (a `map[string][]string`). Available filters:  - `dangling=<boolean>` When set to `true` (or `1`), prune only    unused *and* untagged images. When set to `false`    (or `0`), all unused images are pruned. - `until=<string>` Prune images created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time. - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune images with (or without, in case `label!=...` is used) the specified labels.
   @POST(path: '/images/prune', optionalBody: true)
   Future<chopper.Response<ImagesPrunePost$Response>> _imagesPrunePost({
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Delete unused images',
+      operationId: 'ImagePrune',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Check auth configuration
@@ -1242,6 +1851,19 @@ abstract class Docker extends ChopperService {
   @POST(path: '/auth')
   Future<chopper.Response<AuthResponse>> _authPost({
     @Body() AuthConfig? authConfig,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Validate credentials for a registry and, if available, get an identity
+token for accessing the registry without password.
+''',
+      summary: 'Check auth configuration',
+      operationId: 'SystemAuth',
+      consumes: ["application/json"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["System"],
+      deprecated: false,
+    ),
   });
 
   ///Get system information
@@ -1253,7 +1875,19 @@ abstract class Docker extends ChopperService {
 
   ///Get system information
   @GET(path: '/info')
-  Future<chopper.Response<SystemInfo>> _infoGet();
+  Future<chopper.Response<SystemInfo>> _infoGet({
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Get system information',
+      operationId: 'SystemInfo',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["System"],
+      deprecated: false,
+    ),
+  });
 
   ///Get version
   Future<chopper.Response<SystemVersion>> versionGet() {
@@ -1267,7 +1901,19 @@ abstract class Docker extends ChopperService {
 
   ///Get version
   @GET(path: '/version')
-  Future<chopper.Response<SystemVersion>> _versionGet();
+  Future<chopper.Response<SystemVersion>> _versionGet({
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Returns the version of Docker that is running and various information about the system that Docker is running on.',
+      summary: 'Get version',
+      operationId: 'SystemVersion',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["System"],
+      deprecated: false,
+    ),
+  });
 
   ///Ping
   Future<chopper.Response<String>> pingGet() {
@@ -1276,7 +1922,19 @@ abstract class Docker extends ChopperService {
 
   ///Ping
   @GET(path: '/_ping')
-  Future<chopper.Response<String>> _pingGet();
+  Future<chopper.Response<String>> _pingGet({
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'This is a dummy endpoint you can use to test if the server is accessible.',
+      summary: 'Ping',
+      operationId: 'SystemPing',
+      consumes: [],
+      produces: ["text/plain"],
+      security: [],
+      tags: ["System"],
+      deprecated: false,
+    ),
+  });
 
   ///Ping
   Future<chopper.Response<String>> pingHead() {
@@ -1285,7 +1943,19 @@ abstract class Docker extends ChopperService {
 
   ///Ping
   @HEAD(path: '/_ping')
-  Future<chopper.Response<String>> _pingHead();
+  Future<chopper.Response<String>> _pingHead({
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'This is a dummy endpoint you can use to test if the server is accessible.',
+      summary: 'Ping',
+      operationId: 'SystemPingHead',
+      consumes: [],
+      produces: ["text/plain"],
+      security: [],
+      tags: ["System"],
+      deprecated: false,
+    ),
+  });
 
   ///Create a new image from a container
   ///@param containerConfig The container configuration
@@ -1343,6 +2013,17 @@ abstract class Docker extends ChopperService {
     @Query('author') String? author,
     @Query('pause') bool? pause,
     @Query('changes') String? changes,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Create a new image from a container',
+      operationId: 'ImageCommit',
+      consumes: ["application/json"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Monitor events
@@ -1371,6 +2052,44 @@ abstract class Docker extends ChopperService {
     @Query('since') String? since,
     @Query('until') String? until,
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Stream real-time events from the server.
+
+Various objects within Docker report events when something happens to them.
+
+Containers report these events: `attach`, `commit`, `copy`, `create`, `destroy`, `detach`, `die`, `exec_create`, `exec_detach`, `exec_start`, `exec_die`, `export`, `health_status`, `kill`, `oom`, `pause`, `rename`, `resize`, `restart`, `start`, `stop`, `top`, `unpause`, `update`, and `prune`
+
+Images report these events: `create`, `delete`, `import`, `load`, `pull`, `push`, `save`, `tag`, `untag`, and `prune`
+
+Volumes report these events: `create`, `mount`, `unmount`, `destroy`, and `prune`
+
+Networks report these events: `create`, `connect`, `disconnect`, `destroy`, `update`, `remove`, and `prune`
+
+The Docker daemon reports these events: `reload`
+
+Services report these events: `create`, `update`, and `remove`
+
+Nodes report these events: `create`, `update`, and `remove`
+
+Secrets report these events: `create`, `update`, and `remove`
+
+Configs report these events: `create`, `update`, and `remove`
+
+The Builder reports `prune` events
+''',
+      summary: 'Monitor events',
+      operationId: 'SystemEvents',
+      consumes: [],
+      produces: [
+        "application/jsonl",
+        "application/x-ndjson",
+        "application/json-seq",
+      ],
+      security: [],
+      tags: ["System"],
+      deprecated: false,
+    ),
   });
 
   ///Get data usage information
@@ -1398,6 +2117,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response<SystemDfGet$Response>> _systemDfGet({
     @Query('type') List<Object?>? type,
     @Query('verbose') bool? verbose,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Get data usage information',
+      operationId: 'SystemDataUsage',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["System"],
+      deprecated: false,
+    ),
   });
 
   ///Export an image
@@ -1417,6 +2147,37 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response<String>> _imagesNameGetGet({
     @Path('name') required String? name,
     @Query('platform') List<String>? platform,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description:
+          '''Get a tarball containing all images and metadata for a repository.
+
+If `name` is a specific name and tag (e.g. `ubuntu:latest`), then only that image (and its parents) are returned. If `name` is an image ID, similarly only that image (and its parents) are returned, but with the exclusion of the `repositories` file in the tarball, as there were no image names referenced.
+
+### Image tarball format
+
+An image tarball contains [Content as defined in the OCI Image Layout Specification](https://github.com/opencontainers/image-spec/blob/v1.1.1/image-layout.md#content).
+
+Additionally, includes the manifest.json file associated with a backwards compatible docker save format.
+
+If the tarball defines a repository, the tarball should also include a `repositories` file at the root that contains a list of repository and tag names mapped to layer IDs.
+
+```json
+{
+  "hello-world": {
+    "latest": "565a9d68a73f6706862bfe8409a7f659776d4d60a8d096eb4a3cbce6999cc2a1"
+  }
+}
+```
+''',
+      summary: 'Export an image',
+      operationId: 'ImageGet',
+      consumes: [],
+      produces: ["application/x-tar"],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Export several images
@@ -1436,6 +2197,28 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response<String>> _imagesGetGet({
     @Query('names') List<String>? names,
     @Query('platform') List<String>? platform,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description:
+          '''Get a tarball containing all images and metadata for several image
+repositories.
+
+For each value of the `names` parameter: if it is a specific name and
+tag (e.g. `ubuntu:latest`), then only that image (and its parents) are
+returned; if it is an image ID, similarly only that image (and its parents)
+are returned and there would be no names referenced in the \'repositories\'
+file for this image ID.
+
+For details on the format, see the [export image endpoint](#operation/ImageGet).
+''',
+      summary: 'Export several images',
+      operationId: 'ImageGetAll',
+      consumes: [],
+      produces: ["application/x-tar"],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Import images
@@ -1463,6 +2246,20 @@ abstract class Docker extends ChopperService {
     @Body() String? imagesTarball,
     @Query('quiet') bool? quiet,
     @Query('platform') List<String>? platform,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Load a set of images and tags into a repository.
+
+For details on the format, see the [export image endpoint](#operation/ImageGet).
+''',
+      summary: 'Import images',
+      operationId: 'ImageLoad',
+      consumes: ["application/x-tar"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Image"],
+      deprecated: false,
+    ),
   });
 
   ///Create an exec instance
@@ -1484,6 +2281,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response<IDResponse>> _containersIdExecPost({
     @Body() required Object? execConfig,
     @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Run a command inside a running container.',
+      summary: 'Create an exec instance',
+      operationId: 'ContainerExec',
+      consumes: ["application/json"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Exec"],
+      deprecated: false,
+    ),
   });
 
   ///Start an exec instance
@@ -1503,6 +2311,23 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response> _execIdStartPost({
     @Body() Object? execStartConfig,
     @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Starts a previously set up exec instance. If detach is true, this endpoint
+returns immediately after starting the command. Otherwise, it sets up an
+interactive session with the command.
+''',
+      summary: 'Start an exec instance',
+      operationId: 'ExecStart',
+      consumes: ["application/json"],
+      produces: [
+        "application/vnd.docker.raw-stream",
+        "application/vnd.docker.multiplexed-stream",
+      ],
+      security: [],
+      tags: ["Exec"],
+      deprecated: false,
+    ),
   });
 
   ///Resize an exec instance
@@ -1526,6 +2351,19 @@ abstract class Docker extends ChopperService {
     @Path('id') required String? id,
     @Query('h') required int? h,
     @Query('w') required int? w,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Resize the TTY session used by an exec instance. This endpoint only works
+if `tty` was specified as part of creating and starting the exec instance.
+''',
+      summary: 'Resize an exec instance',
+      operationId: 'ExecResize',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Exec"],
+      deprecated: false,
+    ),
   });
 
   ///Inspect an exec instance
@@ -1546,6 +2384,17 @@ abstract class Docker extends ChopperService {
   @GET(path: '/exec/{id}/json')
   Future<chopper.Response<ExecIdJsonGet$Response>> _execIdJsonGet({
     @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Return low-level information about an exec instance.',
+      summary: 'Inspect an exec instance',
+      operationId: 'ExecInspect',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Exec"],
+      deprecated: false,
+    ),
   });
 
   ///List volumes
@@ -1564,6 +2413,17 @@ abstract class Docker extends ChopperService {
   @GET(path: '/volumes')
   Future<chopper.Response<VolumeListResponse>> _volumesGet({
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'List volumes',
+      operationId: 'VolumeList',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Volume"],
+      deprecated: false,
+    ),
   });
 
   ///Create a volume
@@ -1585,6 +2445,17 @@ abstract class Docker extends ChopperService {
   @POST(path: '/volumes/create')
   Future<chopper.Response<Volume>> _volumesCreatePost({
     @Body() required VolumeCreateRequest? volumeConfig,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Create a volume',
+      operationId: 'VolumeCreate',
+      consumes: ["application/json"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Volume"],
+      deprecated: false,
+    ),
   });
 
   ///Inspect a volume
@@ -1600,6 +2471,17 @@ abstract class Docker extends ChopperService {
   @GET(path: '/volumes/{name}')
   Future<chopper.Response<Volume>> _volumesNameGet({
     @Path('name') required String? name,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Inspect a volume',
+      operationId: 'VolumeInspect',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Volume"],
+      deprecated: false,
+    ),
   });
 
   ///"Update a volume. Valid only for Swarm cluster volumes"
@@ -1625,6 +2507,18 @@ abstract class Docker extends ChopperService {
     @Path('name') required String? name,
     @Body() Object? body,
     @Query('version') required int? version,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: '''"Update a volume. Valid only for Swarm cluster volumes"
+''',
+      operationId: 'VolumeUpdate',
+      consumes: ["application/json"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Volume"],
+      deprecated: false,
+    ),
   });
 
   ///Remove a volume
@@ -1644,6 +2538,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response> _volumesNameDelete({
     @Path('name') required String? name,
     @Query('force') bool? force,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Instruct the driver to remove the volume.',
+      summary: 'Remove a volume',
+      operationId: 'VolumeDelete',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Volume"],
+      deprecated: false,
+    ),
   });
 
   ///Delete unused volumes
@@ -1664,6 +2569,17 @@ abstract class Docker extends ChopperService {
   @POST(path: '/volumes/prune', optionalBody: true)
   Future<chopper.Response<VolumesPrunePost$Response>> _volumesPrunePost({
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Delete unused volumes',
+      operationId: 'VolumePrune',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Volume"],
+      deprecated: false,
+    ),
   });
 
   ///List networks
@@ -1684,6 +2600,24 @@ abstract class Docker extends ChopperService {
   @GET(path: '/networks')
   Future<chopper.Response<List<NetworkSummary>>> _networksGet({
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description:
+          '''Returns a list of networks. For details on the format, see the
+[network inspect endpoint](#operation/NetworkInspect).
+
+Note that it uses a different, smaller representation of a network than
+inspecting a single network. For example, the list of containers attached
+to the network is not propagated in API versions 1.28 and up.
+''',
+      summary: 'List networks',
+      operationId: 'NetworkList',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Network"],
+      deprecated: false,
+    ),
   });
 
   ///Inspect a network
@@ -1712,6 +2646,17 @@ abstract class Docker extends ChopperService {
     @Path('id') required String? id,
     @Query('verbose') bool? verbose,
     @Query('scope') String? scope,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Inspect a network',
+      operationId: 'NetworkInspect',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Network"],
+      deprecated: false,
+    ),
   });
 
   ///Remove a network
@@ -1723,7 +2668,20 @@ abstract class Docker extends ChopperService {
   ///Remove a network
   ///@param id Network ID or name
   @DELETE(path: '/networks/{id}')
-  Future<chopper.Response> _networksIdDelete({@Path('id') required String? id});
+  Future<chopper.Response> _networksIdDelete({
+    @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Remove a network',
+      operationId: 'NetworkDelete',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Network"],
+      deprecated: false,
+    ),
+  });
 
   ///Create a network
   ///@param networkConfig Network configuration
@@ -1743,6 +2701,17 @@ abstract class Docker extends ChopperService {
   @POST(path: '/networks/create')
   Future<chopper.Response<NetworkCreateResponse>> _networksCreatePost({
     @Body() required Object? networkConfig,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Create a network',
+      operationId: 'NetworkCreate',
+      consumes: ["application/json"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Network"],
+      deprecated: false,
+    ),
   });
 
   ///Connect a container to a network
@@ -1767,6 +2736,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response> _networksIdConnectPost({
     @Path('id') required String? id,
     @Body() required NetworkConnectRequest? container,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'The network must be either a local-scoped network or a swarm-scoped network with the `attachable` option set. A network cannot be re-attached to a running container',
+      summary: 'Connect a container to a network',
+      operationId: 'NetworkConnect',
+      consumes: ["application/json"],
+      produces: [],
+      security: [],
+      tags: ["Network"],
+      deprecated: false,
+    ),
   });
 
   ///Disconnect a container from a network
@@ -1791,10 +2771,21 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response> _networksIdDisconnectPost({
     @Path('id') required String? id,
     @Body() required NetworkDisconnectRequest? container,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Disconnect a container from a network',
+      operationId: 'NetworkDisconnect',
+      consumes: ["application/json"],
+      produces: [],
+      security: [],
+      tags: ["Network"],
+      deprecated: false,
+    ),
   });
 
   ///Delete unused networks
-  ///@param filters Filters to process on the prune list, encoded as JSON (a `map[string][]string`).  Available filters: - `until=<timestamp>` Prune networks created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machineâs time. - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune networks with (or without, in case `label!=...` is used) the specified labels.
+  ///@param filters Filters to process on the prune list, encoded as JSON (a `map[string][]string`).  Available filters: - `until=<timestamp>` Prune networks created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time. - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune networks with (or without, in case `label!=...` is used) the specified labels.
   Future<chopper.Response<NetworksPrunePost$Response>> networksPrunePost({
     String? filters,
   }) {
@@ -1807,10 +2798,21 @@ abstract class Docker extends ChopperService {
   }
 
   ///Delete unused networks
-  ///@param filters Filters to process on the prune list, encoded as JSON (a `map[string][]string`).  Available filters: - `until=<timestamp>` Prune networks created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machineâs time. - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune networks with (or without, in case `label!=...` is used) the specified labels.
+  ///@param filters Filters to process on the prune list, encoded as JSON (a `map[string][]string`).  Available filters: - `until=<timestamp>` Prune networks created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time. - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune networks with (or without, in case `label!=...` is used) the specified labels.
   @POST(path: '/networks/prune', optionalBody: true)
   Future<chopper.Response<NetworksPrunePost$Response>> _networksPrunePost({
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Delete unused networks',
+      operationId: 'NetworkPrune',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Network"],
+      deprecated: false,
+    ),
   });
 
   ///List plugins
@@ -1826,6 +2828,17 @@ abstract class Docker extends ChopperService {
   @GET(path: '/plugins')
   Future<chopper.Response<List<Plugin>>> _pluginsGet({
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: 'Returns information about installed plugins.',
+      summary: 'List plugins',
+      operationId: 'PluginList',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Plugin"],
+      deprecated: false,
+    ),
   });
 
   ///Get plugin privileges
@@ -1846,6 +2859,17 @@ abstract class Docker extends ChopperService {
   @GET(path: '/plugins/privileges')
   Future<chopper.Response<List<PluginPrivilege>>> _pluginsPrivilegesGet({
     @Query('remote') required String? remote,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Get plugin privileges',
+      operationId: 'GetPluginPrivileges',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Plugin"],
+      deprecated: false,
+    ),
   });
 
   ///Install a plugin
@@ -1878,6 +2902,19 @@ abstract class Docker extends ChopperService {
     @Query('name') String? name,
     @Header('X-Registry-Auth') String? xRegistryAuth,
     @Body() List<PluginPrivilege>? body,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Pulls and installs a plugin. After the plugin is installed, it can be
+enabled using the [`POST /plugins/{name}/enable` endpoint](#operation/PostPluginsEnable).
+''',
+      summary: 'Install a plugin',
+      operationId: 'PluginPull',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Plugin"],
+      deprecated: false,
+    ),
   });
 
   ///Inspect a plugin
@@ -1893,6 +2930,17 @@ abstract class Docker extends ChopperService {
   @GET(path: '/plugins/{name}/json')
   Future<chopper.Response<Plugin>> _pluginsNameJsonGet({
     @Path('name') required String? name,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Inspect a plugin',
+      operationId: 'PluginInspect',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Plugin"],
+      deprecated: false,
+    ),
   });
 
   ///Remove a plugin
@@ -1914,6 +2962,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response<Plugin>> _pluginsNameDelete({
     @Path('name') required String? name,
     @Query('force') bool? force,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Remove a plugin',
+      operationId: 'PluginDelete',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Plugin"],
+      deprecated: false,
+    ),
   });
 
   ///Enable a plugin
@@ -1933,6 +2992,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response> _pluginsNameEnablePost({
     @Path('name') required String? name,
     @Query('timeout') int? timeout,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Enable a plugin',
+      operationId: 'PluginEnable',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Plugin"],
+      deprecated: false,
+    ),
   });
 
   ///Disable a plugin
@@ -1952,6 +3022,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response> _pluginsNameDisablePost({
     @Path('name') required String? name,
     @Query('force') bool? force,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Disable a plugin',
+      operationId: 'PluginDisable',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Plugin"],
+      deprecated: false,
+    ),
   });
 
   ///Upgrade a plugin
@@ -1984,6 +3065,17 @@ abstract class Docker extends ChopperService {
     @Query('remote') required String? remote,
     @Header('X-Registry-Auth') String? xRegistryAuth,
     @Body() List<PluginPrivilege>? body,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Upgrade a plugin',
+      operationId: 'PluginUpgrade',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Plugin"],
+      deprecated: false,
+    ),
   });
 
   ///Create a plugin
@@ -2003,6 +3095,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response> _pluginsCreatePost({
     @Query('name') required String? name,
     @Body() String? tarContext,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Create a plugin',
+      operationId: 'PluginCreate',
+      consumes: ["application/x-tar"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Plugin"],
+      deprecated: false,
+    ),
   });
 
   ///Push a plugin
@@ -2016,6 +3119,18 @@ abstract class Docker extends ChopperService {
   @POST(path: '/plugins/{name}/push', optionalBody: true)
   Future<chopper.Response> _pluginsNamePushPost({
     @Path('name') required String? name,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Push a plugin to the registry.
+''',
+      summary: 'Push a plugin',
+      operationId: 'PluginPush',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Plugin"],
+      deprecated: false,
+    ),
   });
 
   ///Configure a plugin
@@ -2035,6 +3150,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response> _pluginsNameSetPost({
     @Path('name') required String? name,
     @Body() List<String>? body,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Configure a plugin',
+      operationId: 'PluginSet',
+      consumes: ["application/json"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Plugin"],
+      deprecated: false,
+    ),
   });
 
   ///List nodes
@@ -2050,6 +3176,17 @@ abstract class Docker extends ChopperService {
   @GET(path: '/nodes')
   Future<chopper.Response<List<Node>>> _nodesGet({
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'List nodes',
+      operationId: 'NodeList',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Node"],
+      deprecated: false,
+    ),
   });
 
   ///Inspect a node
@@ -2063,7 +3200,20 @@ abstract class Docker extends ChopperService {
   ///Inspect a node
   ///@param id The ID or name of the node
   @GET(path: '/nodes/{id}')
-  Future<chopper.Response<Node>> _nodesIdGet({@Path('id') required String? id});
+  Future<chopper.Response<Node>> _nodesIdGet({
+    @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Inspect a node',
+      operationId: 'NodeInspect',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Node"],
+      deprecated: false,
+    ),
+  });
 
   ///Delete a node
   ///@param id The ID or name of the node
@@ -2079,6 +3229,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response> _nodesIdDelete({
     @Path('id') required String? id,
     @Query('force') bool? force,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Delete a node',
+      operationId: 'NodeDelete',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Node"],
+      deprecated: false,
+    ),
   });
 
   ///Update a node
@@ -2104,6 +3265,17 @@ abstract class Docker extends ChopperService {
     @Path('id') required String? id,
     @Body() NodeSpec? body,
     @Query('version') required int? version,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Update a node',
+      operationId: 'NodeUpdate',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Node"],
+      deprecated: false,
+    ),
   });
 
   ///Inspect swarm
@@ -2115,7 +3287,19 @@ abstract class Docker extends ChopperService {
 
   ///Inspect swarm
   @GET(path: '/swarm')
-  Future<chopper.Response<Swarm>> _swarmGet();
+  Future<chopper.Response<Swarm>> _swarmGet({
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Inspect swarm',
+      operationId: 'SwarmInspect',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Swarm"],
+      deprecated: false,
+    ),
+  });
 
   ///Initialize a new swarm
   ///@param body
@@ -2128,6 +3312,17 @@ abstract class Docker extends ChopperService {
   @POST(path: '/swarm/init')
   Future<chopper.Response<String>> _swarmInitPost({
     @Body() required Object? body,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Initialize a new swarm',
+      operationId: 'SwarmInit',
+      consumes: [],
+      produces: ["application/json", "text/plain"],
+      security: [],
+      tags: ["Swarm"],
+      deprecated: false,
+    ),
   });
 
   ///Join an existing swarm
@@ -2139,7 +3334,20 @@ abstract class Docker extends ChopperService {
   ///Join an existing swarm
   ///@param body
   @POST(path: '/swarm/join')
-  Future<chopper.Response> _swarmJoinPost({@Body() required Object? body});
+  Future<chopper.Response> _swarmJoinPost({
+    @Body() required Object? body,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Join an existing swarm',
+      operationId: 'SwarmJoin',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Swarm"],
+      deprecated: false,
+    ),
+  });
 
   ///Leave a swarm
   ///@param force Force leave swarm, even if this is the last manager or that it will break the cluster.
@@ -2150,7 +3358,20 @@ abstract class Docker extends ChopperService {
   ///Leave a swarm
   ///@param force Force leave swarm, even if this is the last manager or that it will break the cluster.
   @POST(path: '/swarm/leave', optionalBody: true)
-  Future<chopper.Response> _swarmLeavePost({@Query('force') bool? force});
+  Future<chopper.Response> _swarmLeavePost({
+    @Query('force') bool? force,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Leave a swarm',
+      operationId: 'SwarmLeave',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Swarm"],
+      deprecated: false,
+    ),
+  });
 
   ///Update a swarm
   ///@param body
@@ -2189,6 +3410,17 @@ abstract class Docker extends ChopperService {
     @Query('rotateWorkerToken') bool? rotateWorkerToken,
     @Query('rotateManagerToken') bool? rotateManagerToken,
     @Query('rotateManagerUnlockKey') bool? rotateManagerUnlockKey,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Update a swarm',
+      operationId: 'SwarmUpdate',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Swarm"],
+      deprecated: false,
+    ),
   });
 
   ///Get the unlock key
@@ -2203,7 +3435,19 @@ abstract class Docker extends ChopperService {
 
   ///Get the unlock key
   @GET(path: '/swarm/unlockkey')
-  Future<chopper.Response<SwarmUnlockkeyGet$Response>> _swarmUnlockkeyGet();
+  Future<chopper.Response<SwarmUnlockkeyGet$Response>> _swarmUnlockkeyGet({
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Get the unlock key',
+      operationId: 'SwarmUnlockkey',
+      consumes: ["application/json"],
+      produces: [],
+      security: [],
+      tags: ["Swarm"],
+      deprecated: false,
+    ),
+  });
 
   ///Unlock a locked manager
   ///@param body
@@ -2214,7 +3458,20 @@ abstract class Docker extends ChopperService {
   ///Unlock a locked manager
   ///@param body
   @POST(path: '/swarm/unlock')
-  Future<chopper.Response> _swarmUnlockPost({@Body() required Object? body});
+  Future<chopper.Response> _swarmUnlockPost({
+    @Body() required Object? body,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Unlock a locked manager',
+      operationId: 'SwarmUnlock',
+      consumes: ["application/json"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Swarm"],
+      deprecated: false,
+    ),
+  });
 
   ///List services
   ///@param filters A JSON encoded value of the filters (a `map[string][]string`) to process on the services list.  Available filters:  - `id=<service id>` - `label=<service label>` - `mode=["replicated"|"global"]` - `name=<service name>`
@@ -2235,6 +3492,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response<List<Service>>> _servicesGet({
     @Query('filters') String? filters,
     @Query('status') bool? status,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'List services',
+      operationId: 'ServiceList',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Service"],
+      deprecated: false,
+    ),
   });
 
   ///Create a service
@@ -2262,6 +3530,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response<ServiceCreateResponse>> _servicesCreatePost({
     @Body() required Object? body,
     @Header('X-Registry-Auth') String? xRegistryAuth,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Create a service',
+      operationId: 'ServiceCreate',
+      consumes: ["application/json"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Service"],
+      deprecated: false,
+    ),
   });
 
   ///Inspect a service
@@ -2283,6 +3562,17 @@ abstract class Docker extends ChopperService {
   Future<chopper.Response<Service>> _servicesIdGet({
     @Path('id') required String? id,
     @Query('insertDefaults') bool? insertDefaults,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Inspect a service',
+      operationId: 'ServiceInspect',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Service"],
+      deprecated: false,
+    ),
   });
 
   ///Delete a service
@@ -2294,7 +3584,20 @@ abstract class Docker extends ChopperService {
   ///Delete a service
   ///@param id ID or name of service.
   @DELETE(path: '/services/{id}')
-  Future<chopper.Response> _servicesIdDelete({@Path('id') required String? id});
+  Future<chopper.Response> _servicesIdDelete({
+    @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Delete a service',
+      operationId: 'ServiceDelete',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Service"],
+      deprecated: false,
+    ),
+  });
 
   ///Update a service
   ///@param id ID or name of service.
@@ -2341,6 +3644,17 @@ abstract class Docker extends ChopperService {
     @Query('registryAuthFrom') String? registryAuthFrom,
     @Query('rollback') String? rollback,
     @Header('X-Registry-Auth') String? xRegistryAuth,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Update a service',
+      operationId: 'ServiceUpdate',
+      consumes: ["application/json"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Service"],
+      deprecated: false,
+    ),
   });
 
   ///Get service logs
@@ -2393,6 +3707,25 @@ abstract class Docker extends ChopperService {
     @Query('since') int? since,
     @Query('timestamps') bool? timestamps,
     @Query('tail') String? tail,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Get `stdout` and `stderr` logs from a service. See also
+[`/containers/{id}/logs`](#operation/ContainerLogs).
+
+**Note**: This endpoint works only for services with the `local`,
+`json-file` or `journald` logging drivers.
+''',
+      summary: 'Get service logs',
+      operationId: 'ServiceLogs',
+      consumes: [],
+      produces: [
+        "application/vnd.docker.raw-stream",
+        "application/vnd.docker.multiplexed-stream",
+      ],
+      security: [],
+      tags: ["Service"],
+      deprecated: false,
+    ),
   });
 
   ///List tasks
@@ -2408,6 +3741,17 @@ abstract class Docker extends ChopperService {
   @GET(path: '/tasks')
   Future<chopper.Response<List<Task>>> _tasksGet({
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'List tasks',
+      operationId: 'TaskList',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Task"],
+      deprecated: false,
+    ),
   });
 
   ///Inspect a task
@@ -2421,7 +3765,20 @@ abstract class Docker extends ChopperService {
   ///Inspect a task
   ///@param id ID of the task
   @GET(path: '/tasks/{id}')
-  Future<chopper.Response<Task>> _tasksIdGet({@Path('id') required String? id});
+  Future<chopper.Response<Task>> _tasksIdGet({
+    @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Inspect a task',
+      operationId: 'TaskInspect',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Task"],
+      deprecated: false,
+    ),
+  });
 
   ///Get task logs
   ///@param id ID of the task
@@ -2473,6 +3830,25 @@ abstract class Docker extends ChopperService {
     @Query('since') int? since,
     @Query('timestamps') bool? timestamps,
     @Query('tail') String? tail,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Get `stdout` and `stderr` logs from a task.
+See also [`/containers/{id}/logs`](#operation/ContainerLogs).
+
+**Note**: This endpoint works only for services with the `local`,
+`json-file` or `journald` logging drivers.
+''',
+      summary: 'Get task logs',
+      operationId: 'TaskLogs',
+      consumes: [],
+      produces: [
+        "application/vnd.docker.raw-stream",
+        "application/vnd.docker.multiplexed-stream",
+      ],
+      security: [],
+      tags: ["Task"],
+      deprecated: false,
+    ),
   });
 
   ///List secrets
@@ -2488,6 +3864,17 @@ abstract class Docker extends ChopperService {
   @GET(path: '/secrets')
   Future<chopper.Response<List<Secret>>> _secretsGet({
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'List secrets',
+      operationId: 'SecretList',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Secret"],
+      deprecated: false,
+    ),
   });
 
   ///Create a secret
@@ -2503,6 +3890,17 @@ abstract class Docker extends ChopperService {
   @POST(path: '/secrets/create')
   Future<chopper.Response<IDResponse>> _secretsCreatePost({
     @Body() Object? body,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Create a secret',
+      operationId: 'SecretCreate',
+      consumes: ["application/json"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Secret"],
+      deprecated: false,
+    ),
   });
 
   ///Inspect a secret
@@ -2518,6 +3916,17 @@ abstract class Docker extends ChopperService {
   @GET(path: '/secrets/{id}')
   Future<chopper.Response<Secret>> _secretsIdGet({
     @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Inspect a secret',
+      operationId: 'SecretInspect',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Secret"],
+      deprecated: false,
+    ),
   });
 
   ///Delete a secret
@@ -2529,7 +3938,20 @@ abstract class Docker extends ChopperService {
   ///Delete a secret
   ///@param id ID of the secret
   @DELETE(path: '/secrets/{id}')
-  Future<chopper.Response> _secretsIdDelete({@Path('id') required String? id});
+  Future<chopper.Response> _secretsIdDelete({
+    @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Delete a secret',
+      operationId: 'SecretDelete',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Secret"],
+      deprecated: false,
+    ),
+  });
 
   ///Update a Secret
   ///@param id The ID or name of the secret
@@ -2554,6 +3976,17 @@ abstract class Docker extends ChopperService {
     @Path('id') required String? id,
     @Body() SecretSpec? body,
     @Query('version') required int? version,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Update a Secret',
+      operationId: 'SecretUpdate',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Secret"],
+      deprecated: false,
+    ),
   });
 
   ///List configs
@@ -2569,6 +4002,17 @@ abstract class Docker extends ChopperService {
   @GET(path: '/configs')
   Future<chopper.Response<List<Config>>> _configsGet({
     @Query('filters') String? filters,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'List configs',
+      operationId: 'ConfigList',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Config"],
+      deprecated: false,
+    ),
   });
 
   ///Create a config
@@ -2584,6 +4028,17 @@ abstract class Docker extends ChopperService {
   @POST(path: '/configs/create')
   Future<chopper.Response<IDResponse>> _configsCreatePost({
     @Body() Object? body,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Create a config',
+      operationId: 'ConfigCreate',
+      consumes: ["application/json"],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Config"],
+      deprecated: false,
+    ),
   });
 
   ///Inspect a config
@@ -2599,6 +4054,17 @@ abstract class Docker extends ChopperService {
   @GET(path: '/configs/{id}')
   Future<chopper.Response<Config>> _configsIdGet({
     @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Inspect a config',
+      operationId: 'ConfigInspect',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Config"],
+      deprecated: false,
+    ),
   });
 
   ///Delete a config
@@ -2610,7 +4076,20 @@ abstract class Docker extends ChopperService {
   ///Delete a config
   ///@param id ID of the config
   @DELETE(path: '/configs/{id}')
-  Future<chopper.Response> _configsIdDelete({@Path('id') required String? id});
+  Future<chopper.Response> _configsIdDelete({
+    @Path('id') required String? id,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Delete a config',
+      operationId: 'ConfigDelete',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Config"],
+      deprecated: false,
+    ),
+  });
 
   ///Update a Config
   ///@param id The ID or name of the config
@@ -2635,6 +4114,17 @@ abstract class Docker extends ChopperService {
     @Path('id') required String? id,
     @Body() ConfigSpec? body,
     @Query('version') required int? version,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '',
+      summary: 'Update a Config',
+      operationId: 'ConfigUpdate',
+      consumes: [],
+      produces: [],
+      security: [],
+      tags: ["Config"],
+      deprecated: false,
+    ),
   });
 
   ///Get image information from the registry
@@ -2655,6 +4145,18 @@ abstract class Docker extends ChopperService {
   @GET(path: '/distribution/{name}/json')
   Future<chopper.Response<DistributionInspect>> _distributionNameJsonGet({
     @Path('name') required String? name,
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Return image digest and platform information by contacting the registry.
+''',
+      summary: 'Get image information from the registry',
+      operationId: 'DistributionInspect',
+      consumes: [],
+      produces: ["application/json"],
+      security: [],
+      tags: ["Distribution"],
+      deprecated: false,
+    ),
   });
 
   ///Initialize interactive session
@@ -2664,7 +4166,46 @@ abstract class Docker extends ChopperService {
 
   ///Initialize interactive session
   @POST(path: '/session', optionalBody: true)
-  Future<chopper.Response> _sessionPost();
+  Future<chopper.Response> _sessionPost({
+    @chopper.Tag()
+    SwaggerMetaData swaggerMetaData = const SwaggerMetaData(
+      description: '''Start a new interactive session with a server. Session allows server to
+call back to the client for advanced capabilities.
+
+> **Deprecated**: This endpoint is deprecated and will be removed in a future version.
+> Server should support gRPC directly on the listening socket.
+
+### Hijacking
+
+This endpoint hijacks the HTTP connection to HTTP2 transport that allows
+the client to expose gPRC services on that connection.
+
+For example, the client sends this request to upgrade the connection:
+
+```
+POST /session HTTP/1.1
+Upgrade: h2c
+Connection: Upgrade
+```
+
+The Docker daemon responds with a `101 UPGRADED` response follow with
+the raw stream:
+
+```
+HTTP/1.1 101 UPGRADED
+Connection: Upgrade
+Upgrade: h2c
+```
+''',
+      summary: 'Initialize interactive session',
+      operationId: 'Session',
+      consumes: [],
+      produces: ["application/vnd.docker.raw-stream"],
+      security: [],
+      tags: ["Session"],
+      deprecated: false,
+    ),
+  });
 }
 
 @JsonSerializable(explicitToJson: true)
@@ -11276,7 +12817,7 @@ class PluginEnv {
     required this.name,
     required this.description,
     required this.settable,
-    required this.$Value,
+    required this.value,
   });
 
   factory PluginEnv.fromJson(Map<String, dynamic> json) =>
@@ -11292,7 +12833,7 @@ class PluginEnv {
   @JsonKey(name: 'Settable', defaultValue: <String>[])
   final List<String> settable;
   @JsonKey(name: 'Value')
-  final String $Value;
+  final String value;
   static const fromJsonFactory = _$PluginEnvFromJson;
 
   @override
@@ -11311,8 +12852,8 @@ class PluginEnv {
                   other.settable,
                   settable,
                 )) &&
-            (identical(other.$Value, $Value) ||
-                const DeepCollectionEquality().equals(other.$Value, $Value)));
+            (identical(other.value, value) ||
+                const DeepCollectionEquality().equals(other.value, value)));
   }
 
   @override
@@ -11323,7 +12864,7 @@ class PluginEnv {
       const DeepCollectionEquality().hash(name) ^
       const DeepCollectionEquality().hash(description) ^
       const DeepCollectionEquality().hash(settable) ^
-      const DeepCollectionEquality().hash($Value) ^
+      const DeepCollectionEquality().hash(value) ^
       runtimeType.hashCode;
 }
 
@@ -11332,13 +12873,13 @@ extension $PluginEnvExtension on PluginEnv {
     String? name,
     String? description,
     List<String>? settable,
-    String? $Value,
+    String? value,
   }) {
     return PluginEnv(
       name: name ?? this.name,
       description: description ?? this.description,
       settable: settable ?? this.settable,
-      $Value: $Value ?? this.$Value,
+      value: value ?? this.value,
     );
   }
 
@@ -11346,20 +12887,20 @@ extension $PluginEnvExtension on PluginEnv {
     Wrapped<String>? name,
     Wrapped<String>? description,
     Wrapped<List<String>>? settable,
-    Wrapped<String>? $Value,
+    Wrapped<String>? value,
   }) {
     return PluginEnv(
       name: (name != null ? name.value : this.name),
       description: (description != null ? description.value : this.description),
       settable: (settable != null ? settable.value : this.settable),
-      $Value: ($Value != null ? $Value.value : this.$Value),
+      value: (value != null ? value.value : this.value),
     );
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class PluginPrivilege {
-  const PluginPrivilege({this.name, this.description, this.$Value});
+  const PluginPrivilege({this.name, this.description, this.value});
 
   factory PluginPrivilege.fromJson(Map<String, dynamic> json) =>
       _$PluginPrivilegeFromJson(json);
@@ -11372,7 +12913,7 @@ class PluginPrivilege {
   @JsonKey(name: 'Description')
   final String? description;
   @JsonKey(name: 'Value', defaultValue: <String>[])
-  final List<String>? $Value;
+  final List<String>? value;
   static const fromJsonFactory = _$PluginPrivilegeFromJson;
 
   @override
@@ -11386,8 +12927,8 @@ class PluginPrivilege {
                   other.description,
                   description,
                 )) &&
-            (identical(other.$Value, $Value) ||
-                const DeepCollectionEquality().equals(other.$Value, $Value)));
+            (identical(other.value, value) ||
+                const DeepCollectionEquality().equals(other.value, value)));
   }
 
   @override
@@ -11397,7 +12938,7 @@ class PluginPrivilege {
   int get hashCode =>
       const DeepCollectionEquality().hash(name) ^
       const DeepCollectionEquality().hash(description) ^
-      const DeepCollectionEquality().hash($Value) ^
+      const DeepCollectionEquality().hash(value) ^
       runtimeType.hashCode;
 }
 
@@ -11405,24 +12946,24 @@ extension $PluginPrivilegeExtension on PluginPrivilege {
   PluginPrivilege copyWith({
     String? name,
     String? description,
-    List<String>? $Value,
+    List<String>? value,
   }) {
     return PluginPrivilege(
       name: name ?? this.name,
       description: description ?? this.description,
-      $Value: $Value ?? this.$Value,
+      value: value ?? this.value,
     );
   }
 
   PluginPrivilege copyWithWrapped({
     Wrapped<String?>? name,
     Wrapped<String?>? description,
-    Wrapped<List<String>?>? $Value,
+    Wrapped<List<String>?>? value,
   }) {
     return PluginPrivilege(
       name: (name != null ? name.value : this.name),
       description: (description != null ? description.value : this.description),
-      $Value: ($Value != null ? $Value.value : this.$Value),
+      value: (value != null ? value.value : this.value),
     );
   }
 }
@@ -15981,7 +17522,7 @@ extension $ContainerBlkioStatsExtension on ContainerBlkioStats {
 
 @JsonSerializable(explicitToJson: true)
 class ContainerBlkioStatEntry {
-  const ContainerBlkioStatEntry({this.major, this.minor, this.op, this.$value});
+  const ContainerBlkioStatEntry({this.major, this.minor, this.op, this.value});
 
   factory ContainerBlkioStatEntry.fromJson(Map<String, dynamic> json) =>
       _$ContainerBlkioStatEntryFromJson(json);
@@ -15996,7 +17537,7 @@ class ContainerBlkioStatEntry {
   @JsonKey(name: 'op')
   final String? op;
   @JsonKey(name: 'value')
-  final int? $value;
+  final int? value;
   static const fromJsonFactory = _$ContainerBlkioStatEntryFromJson;
 
   @override
@@ -16009,8 +17550,8 @@ class ContainerBlkioStatEntry {
                 const DeepCollectionEquality().equals(other.minor, minor)) &&
             (identical(other.op, op) ||
                 const DeepCollectionEquality().equals(other.op, op)) &&
-            (identical(other.$value, $value) ||
-                const DeepCollectionEquality().equals(other.$value, $value)));
+            (identical(other.value, value) ||
+                const DeepCollectionEquality().equals(other.value, value)));
   }
 
   @override
@@ -16021,7 +17562,7 @@ class ContainerBlkioStatEntry {
       const DeepCollectionEquality().hash(major) ^
       const DeepCollectionEquality().hash(minor) ^
       const DeepCollectionEquality().hash(op) ^
-      const DeepCollectionEquality().hash($value) ^
+      const DeepCollectionEquality().hash(value) ^
       runtimeType.hashCode;
 }
 
@@ -16030,13 +17571,13 @@ extension $ContainerBlkioStatEntryExtension on ContainerBlkioStatEntry {
     int? major,
     int? minor,
     String? op,
-    int? $value,
+    int? value,
   }) {
     return ContainerBlkioStatEntry(
       major: major ?? this.major,
       minor: minor ?? this.minor,
       op: op ?? this.op,
-      $value: $value ?? this.$value,
+      value: value ?? this.value,
     );
   }
 
@@ -16044,13 +17585,13 @@ extension $ContainerBlkioStatEntryExtension on ContainerBlkioStatEntry {
     Wrapped<int?>? major,
     Wrapped<int?>? minor,
     Wrapped<String?>? op,
-    Wrapped<int?>? $value,
+    Wrapped<int?>? value,
   }) {
     return ContainerBlkioStatEntry(
       major: (major != null ? major.value : this.major),
       minor: (minor != null ? minor.value : this.minor),
       op: (op != null ? op.value : this.op),
-      $value: ($value != null ? $value.value : this.$value),
+      value: (value != null ? value.value : this.value),
     );
   }
 }
@@ -20927,7 +22468,7 @@ extension $Resources$Ulimits$ItemExtension on Resources$Ulimits$Item {
 
 @JsonSerializable(explicitToJson: true)
 class GenericResources$Item$NamedResourceSpec {
-  const GenericResources$Item$NamedResourceSpec({this.kind, this.$Value});
+  const GenericResources$Item$NamedResourceSpec({this.kind, this.value});
 
   factory GenericResources$Item$NamedResourceSpec.fromJson(
     Map<String, dynamic> json,
@@ -20940,7 +22481,7 @@ class GenericResources$Item$NamedResourceSpec {
   @JsonKey(name: 'Kind')
   final String? kind;
   @JsonKey(name: 'Value')
-  final String? $Value;
+  final String? value;
   static const fromJsonFactory =
       _$GenericResources$Item$NamedResourceSpecFromJson;
 
@@ -20950,8 +22491,8 @@ class GenericResources$Item$NamedResourceSpec {
         (other is GenericResources$Item$NamedResourceSpec &&
             (identical(other.kind, kind) ||
                 const DeepCollectionEquality().equals(other.kind, kind)) &&
-            (identical(other.$Value, $Value) ||
-                const DeepCollectionEquality().equals(other.$Value, $Value)));
+            (identical(other.value, value) ||
+                const DeepCollectionEquality().equals(other.value, value)));
   }
 
   @override
@@ -20960,7 +22501,7 @@ class GenericResources$Item$NamedResourceSpec {
   @override
   int get hashCode =>
       const DeepCollectionEquality().hash(kind) ^
-      const DeepCollectionEquality().hash($Value) ^
+      const DeepCollectionEquality().hash(value) ^
       runtimeType.hashCode;
 }
 
@@ -20968,28 +22509,28 @@ extension $GenericResources$Item$NamedResourceSpecExtension
     on GenericResources$Item$NamedResourceSpec {
   GenericResources$Item$NamedResourceSpec copyWith({
     String? kind,
-    String? $Value,
+    String? value,
   }) {
     return GenericResources$Item$NamedResourceSpec(
       kind: kind ?? this.kind,
-      $Value: $Value ?? this.$Value,
+      value: value ?? this.value,
     );
   }
 
   GenericResources$Item$NamedResourceSpec copyWithWrapped({
     Wrapped<String?>? kind,
-    Wrapped<String?>? $Value,
+    Wrapped<String?>? value,
   }) {
     return GenericResources$Item$NamedResourceSpec(
       kind: (kind != null ? kind.value : this.kind),
-      $Value: ($Value != null ? $Value.value : this.$Value),
+      value: (value != null ? value.value : this.value),
     );
   }
 }
 
 @JsonSerializable(explicitToJson: true)
 class GenericResources$Item$DiscreteResourceSpec {
-  const GenericResources$Item$DiscreteResourceSpec({this.kind, this.$Value});
+  const GenericResources$Item$DiscreteResourceSpec({this.kind, this.value});
 
   factory GenericResources$Item$DiscreteResourceSpec.fromJson(
     Map<String, dynamic> json,
@@ -21003,7 +22544,7 @@ class GenericResources$Item$DiscreteResourceSpec {
   @JsonKey(name: 'Kind')
   final String? kind;
   @JsonKey(name: 'Value')
-  final int? $Value;
+  final int? value;
   static const fromJsonFactory =
       _$GenericResources$Item$DiscreteResourceSpecFromJson;
 
@@ -21013,8 +22554,8 @@ class GenericResources$Item$DiscreteResourceSpec {
         (other is GenericResources$Item$DiscreteResourceSpec &&
             (identical(other.kind, kind) ||
                 const DeepCollectionEquality().equals(other.kind, kind)) &&
-            (identical(other.$Value, $Value) ||
-                const DeepCollectionEquality().equals(other.$Value, $Value)));
+            (identical(other.value, value) ||
+                const DeepCollectionEquality().equals(other.value, value)));
   }
 
   @override
@@ -21023,7 +22564,7 @@ class GenericResources$Item$DiscreteResourceSpec {
   @override
   int get hashCode =>
       const DeepCollectionEquality().hash(kind) ^
-      const DeepCollectionEquality().hash($Value) ^
+      const DeepCollectionEquality().hash(value) ^
       runtimeType.hashCode;
 }
 
@@ -21031,21 +22572,21 @@ extension $GenericResources$Item$DiscreteResourceSpecExtension
     on GenericResources$Item$DiscreteResourceSpec {
   GenericResources$Item$DiscreteResourceSpec copyWith({
     String? kind,
-    int? $Value,
+    int? value,
   }) {
     return GenericResources$Item$DiscreteResourceSpec(
       kind: kind ?? this.kind,
-      $Value: $Value ?? this.$Value,
+      value: value ?? this.value,
     );
   }
 
   GenericResources$Item$DiscreteResourceSpec copyWithWrapped({
     Wrapped<String?>? kind,
-    Wrapped<int?>? $Value,
+    Wrapped<int?>? value,
   }) {
     return GenericResources$Item$DiscreteResourceSpec(
       kind: (kind != null ? kind.value : this.kind),
-      $Value: ($Value != null ? $Value.value : this.$Value),
+      value: (value != null ? value.value : this.value),
     );
   }
 }
@@ -24983,7 +26524,7 @@ class Plugin$Config$Args {
     required this.name,
     required this.description,
     required this.settable,
-    required this.$Value,
+    required this.value,
   });
 
   factory Plugin$Config$Args.fromJson(Map<String, dynamic> json) =>
@@ -24999,7 +26540,7 @@ class Plugin$Config$Args {
   @JsonKey(name: 'Settable', defaultValue: <String>[])
   final List<String> settable;
   @JsonKey(name: 'Value', defaultValue: <String>[])
-  final List<String> $Value;
+  final List<String> value;
   static const fromJsonFactory = _$Plugin$Config$ArgsFromJson;
 
   @override
@@ -25018,8 +26559,8 @@ class Plugin$Config$Args {
                   other.settable,
                   settable,
                 )) &&
-            (identical(other.$Value, $Value) ||
-                const DeepCollectionEquality().equals(other.$Value, $Value)));
+            (identical(other.value, value) ||
+                const DeepCollectionEquality().equals(other.value, value)));
   }
 
   @override
@@ -25030,7 +26571,7 @@ class Plugin$Config$Args {
       const DeepCollectionEquality().hash(name) ^
       const DeepCollectionEquality().hash(description) ^
       const DeepCollectionEquality().hash(settable) ^
-      const DeepCollectionEquality().hash($Value) ^
+      const DeepCollectionEquality().hash(value) ^
       runtimeType.hashCode;
 }
 
@@ -25039,13 +26580,13 @@ extension $Plugin$Config$ArgsExtension on Plugin$Config$Args {
     String? name,
     String? description,
     List<String>? settable,
-    List<String>? $Value,
+    List<String>? value,
   }) {
     return Plugin$Config$Args(
       name: name ?? this.name,
       description: description ?? this.description,
       settable: settable ?? this.settable,
-      $Value: $Value ?? this.$Value,
+      value: value ?? this.value,
     );
   }
 
@@ -25053,13 +26594,13 @@ extension $Plugin$Config$ArgsExtension on Plugin$Config$Args {
     Wrapped<String>? name,
     Wrapped<String>? description,
     Wrapped<List<String>>? settable,
-    Wrapped<List<String>>? $Value,
+    Wrapped<List<String>>? value,
   }) {
     return Plugin$Config$Args(
       name: (name != null ? name.value : this.name),
       description: (description != null ? description.value : this.description),
       settable: (settable != null ? settable.value : this.settable),
-      $Value: ($Value != null ? $Value.value : this.$Value),
+      value: (value != null ? value.value : this.value),
     );
   }
 }
@@ -27381,7 +28922,7 @@ List<enums.ChangeType> changeTypeListFromJson(
     return defaultValue ?? [];
   }
 
-  return changeType.map((e) => changeTypeFromJson(e.toString())).toList();
+  return changeType.map((e) => changeTypeFromJson(e)).toList();
 }
 
 List<enums.ChangeType>? changeTypeNullableListFromJson(
@@ -27392,7 +28933,7 @@ List<enums.ChangeType>? changeTypeNullableListFromJson(
     return defaultValue;
   }
 
-  return changeType.map((e) => changeTypeFromJson(e.toString())).toList();
+  return changeType.map((e) => changeTypeFromJson(e)).toList();
 }
 
 String? signatureTimestampTypeNullableToJson(

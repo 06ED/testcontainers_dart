@@ -1,3 +1,5 @@
+import '../files/container_file.dart';
+import '../network/managed_network.dart';
 import '../wait/wait.dart';
 import 'pull_policy.dart';
 
@@ -32,11 +34,27 @@ class const ContainerConfig({
   final List<String>? command,
   final List<Port> exposedPorts = const [],
   final List<BindMount> mounts = const [],
+  final List<ContainerFile> files = const [],
+  final ManagedNetwork? network,
+  final List<String> networkAliases = const [],
   final Map<String, String> labels = const {},
   final String portBindingHost = '127.0.0.1',
   final Wait waitStrategy = const Wait.forNothing(),
 }) {
   void validate() {
+    for (final file in files) {
+      file.validate();
+    }
+    if (network == null && networkAliases.isNotEmpty) {
+      throw ArgumentError('Network aliases require a managed network');
+    }
+    for (final alias in networkAliases) {
+      if (alias.length > 253 ||
+          !RegExp(r'^[a-zA-Z0-9](?:[a-zA-Z0-9_.-]*[a-zA-Z0-9])?$')
+              .hasMatch(alias)) {
+        throw ArgumentError('Invalid network alias');
+      }
+    }
     if (image.trim().isEmpty || image.contains('\u0000')) {
       throw ArgumentError.value(image, 'image', 'An image is required');
     }
@@ -83,10 +101,17 @@ class const ContainerConfig({
     if (command case final command?) 'Cmd': List.of(command),
 
     'Labels': Map<String, String>.of(labels),
+    if (network case final network?)
+      'NetworkingConfig': {
+        'EndpointsConfig': {
+          network.id: {'Aliases': List.of(networkAliases)},
+        },
+      },
     'ExposedPorts': {
       for (final port in exposedPorts) '$port': <String, dynamic>{},
     },
     'HostConfig': {
+      if (network case final network?) 'NetworkMode': network.id,
       'PortBindings': {
         for (final port in exposedPorts)
           '$port': [

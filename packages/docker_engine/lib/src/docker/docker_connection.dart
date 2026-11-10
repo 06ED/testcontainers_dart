@@ -12,6 +12,8 @@ import 'docker_config.dart';
 import 'docker_output.dart';
 import 'responses.dart';
 
+part 'docker_archive.dart';
+
 class DockerConnection._(
   final Docker api,
   final http.Client transport,
@@ -149,7 +151,7 @@ extension DockerLogStreaming on Docker {
 
     void finish() {
       finished = true;
-      managed?._logRequests.remove(abort);
+      managed?._streamRequests.remove(abort);
       unawaited(controller.close());
     }
 
@@ -164,7 +166,7 @@ extension DockerLogStreaming on Docker {
           throw StateError('Docker connection is closed');
         }
 
-        managed?._logRequests.add(abort);
+        managed?._streamRequests.add(abort);
         final request = http.AbortableRequest(
           'GET',
           url,
@@ -210,7 +212,7 @@ extension DockerLogStreaming on Docker {
       onResume: () => subscription?.resume(),
       onCancel: () async {
         cancelled = true;
-        managed?._logRequests.remove(abort);
+        managed?._streamRequests.remove(abort);
         if (!finished && !abort.isCompleted) abort.complete();
         await subscription?.cancel();
       },
@@ -222,7 +224,7 @@ extension DockerLogStreaming on Docker {
 
 class _TimeoutClient(final http.Client inner, final Duration timeout)
     extends http.BaseClient {
-  final _logRequests = <Completer<void>>{};
+  final _streamRequests = <Completer<void>>{};
   bool _closed = false;
 
   @override
@@ -265,11 +267,11 @@ class _TimeoutClient(final http.Client inner, final Duration timeout)
   void close() {
     _closed = true;
 
-    for (final request in _logRequests) {
+    for (final request in _streamRequests.toList()) {
       if (!request.isCompleted) request.complete();
     }
 
-    _logRequests.clear();
+    _streamRequests.clear();
     inner.close();
   }
 }

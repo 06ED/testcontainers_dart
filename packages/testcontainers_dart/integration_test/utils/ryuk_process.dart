@@ -5,6 +5,7 @@ import 'package:testcontainers_dart/testcontainers_dart.dart';
 
 Future<void> main(List<String> arguments) async {
   final mode = arguments.first;
+
   if (mode == 'startup-failure') {
     try {
       await Testcontainers.run(
@@ -21,17 +22,22 @@ Future<void> main(List<String> arguments) async {
     }
     throw StateError('Expected startup to fail');
   }
+
   final provider = mode == 'terminate'
       ? null
       : await DockerProvider.connect(ryuk: const RyukConfig());
-  const config = ContainerConfig(
+  final network = await provider?.createNetwork();
+  final config = ContainerConfig(
     image: 'busybox:1.37',
-    command: ['sleep', '300'],
+    command: const ['sleep', '300'],
+    network: network,
   );
   final container = provider == null
       ? await Testcontainers.run(config, ryuk: const RyukConfig())
       : await provider.start(config);
-  await report(container);
+
+  await report(container, networkId: network?.id);
+
   if (mode == 'terminate') {
     await container.terminate();
   } else if (mode == 'close') {
@@ -43,16 +49,19 @@ Future<void> main(List<String> arguments) async {
   }
 }
 
-Future<void> report(StartedContainer container) async {
+Future<void> report(StartedContainer container, {String? networkId}) async {
   final info = await container.inspect();
   final session = info['Config']['Labels']['org.testcontainers.sessionId'];
+
   stdout.writeln(
     jsonEncode({
       'id': container.id,
       'ryuk': 'testcontainers-ryuk-$session',
       'session': session,
+      'network': ?networkId,
     }),
   );
+
   await stdout.flush();
 }
 

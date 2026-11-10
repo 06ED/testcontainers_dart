@@ -127,6 +127,118 @@ void main() {
           jsonDecode(docker.bodies[i]) as Map<String, dynamic>,
     ];
 
+    test('application and Ryuk use the same registry resolver without leaking headers', () async {
+      provider.close();
+      final handler = docker.handler!;
+      final pulls = <String, Map<String, dynamic>>{};
+      docker.handler = (request) async {
+        final header = request.headers.value('x-registry-auth');
+        if (request.uri.path.endsWith('/images/create')) {
+          pulls[request.uri.queryParameters['fromImage']!] = jsonDecode(
+            utf8.decode(base64Url.decode(header!)),
+          ) as Map<String, dynamic>;
+        } else {
+          expect(header, isNull);
+        }
+        return handler(request);
+      };
+      provider = await DockerProvider.connect(
+        config: DockerConfig(endpoint: docker.endpoint),
+        ryuk: const RyukConfig(image: 'ryuk.test/ryuk:1'),
+        registryCredentials: {
+          'ryuk.test': RegistryCredentials(
+            username: 'ryuk',
+            password: 'ryuk-secret',
+          ),
+          'app.test': RegistryCredentials(
+            username: 'app',
+            password: 'app-secret',
+          ),
+        },
+      );
+      final container = await provider.start(
+        const ContainerConfig(image: 'app.test/app:1'),
+      );
+      expect(pulls['ryuk.test/ryuk:1']!['password'], 'ryuk-secret');
+      expect(pulls['app.test/app:1']!['password'], 'app-secret');
+      expect(bodies().toString(), isNot(contains('secret')));
+      await container.terminate();
+    });
+
+    test(
+      'Ryuk startup exceptions retain only safe authentication errors',
+      () async {
+        provider.close();
+        final handler = docker.handler!;
+        docker.handler = (request) async {
+          if (request.uri.path.endsWith('/images/create')) {
+            await DockerServer.respond(request, {
+              'message': 'secret ${request.headers.value('x-registry-auth')}',
+            }, status: 401);
+            return true;
+          }
+          return handler(request);
+        };
+        provider = await DockerProvider.connect(
+          config: DockerConfig(endpoint: docker.endpoint),
+          registryCredentials: {
+            'docker.io': RegistryCredentials(
+              username: 'user',
+              password: 'secret',
+            ),
+          },
+        );
+        await expectLater(
+          provider.start(const ContainerConfig(image: 'redis')),
+          throwsA(
+            isA<ContainerStartException>()
+                .having(
+                  (e) => e.toString(),
+                  'safe diagnostic',
+                  isNot(contains('secret')),
+                )
+                .having(
+                  (e) => e.cause.toString(),
+                  'safe cause',
+                  isNot(contains('secret')),
+                ),
+          ),
+        );
+        expect(creates, 0);
+      },
+    );
+
+    test('network creation waits for Ryuk ACK and shares its session labels', () async {
+      final socket = Completer<Socket>();
+      acknowledge = (client) => socket.complete(client);
+      final handler = docker.handler!;
+      Map<String, dynamic>? networkBody;
+      docker.handler = (request) async {
+        if (request.uri.path.endsWith('/networks/create')) {
+          networkBody = jsonDecode(docker.bodies.last) as Map<String, dynamic>;
+          await DockerServer.respond(request, {
+            'Id': 'network-1',
+            'Warning': '',
+          }, status: 201);
+          return true;
+        }
+        return handler(request);
+      };
+      final pending = provider.createNetwork();
+      final client = await socket.future;
+      expect(networkBody, isNull);
+      client.write('ACK\n');
+      final network = await pending;
+      await provider.start(ContainerConfig(image: 'busybox', network: network));
+      final labels = networkBody!['Labels'];
+      expect(bodies().last['Labels'], labels);
+      expect(
+        await filter.future,
+        'label=org.testcontainers.sessionId=${labels['org.testcontainers.sessionId']}',
+      );
+      await network.terminate();
+    });
+
     for (final disabled in [false, true]) {
       test(
         'provider applies process Ryuk settings (disabled: $disabled)',
@@ -209,7 +321,14 @@ void main() {
         '127.0.0.1',
       );
       final session = requests[1]['Labels']['org.testcontainers.sessionId'];
-      expect(session, matches(RegExp(r'^[a-f0-9]{32}$')));
+      expect(
+        session,
+        matches(
+          RegExp(
+            r'^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$',
+          ),
+        ),
+      );
       expect(requests[1]['Labels']['owner'], 'test');
       expect(requests[2]['Labels']['org.testcontainers.sessionId'], session);
       expect(requests[1]['Labels']['org.testcontainers'], 'true');

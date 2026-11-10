@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:docker_engine/docker_engine.dart' hide ContainerConfig;
 
+import '../auth/registry_auth.dart';
 import '../container/container_config.dart';
 import '../container/pull_image.dart';
 import '../container/started_container.dart';
@@ -14,11 +14,9 @@ class RyukSession(
   final Docker api,
   final String host,
   final RyukConfig config,
+  final RegistryAuth auth,
+  final String id,
 ) {
-  final String id = List.generate(
-    16,
-    (_) => Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0'),
-  ).join();
   Future<void>? _startup;
   Socket? _socket;
   Completer<void>? _ack;
@@ -48,8 +46,9 @@ class RyukSession(
     var creating = false;
     try {
       _checkOpen();
-      await pullImage(api, config.image, policy: config.pullPolicy);
+      await pullImage(api, config.image, policy: config.pullPolicy, auth: auth);
       _checkOpen();
+
       final body = ContainerConfig(
         image: config.image,
         exposedPorts: const [Port.tcp(8080)],
@@ -68,9 +67,11 @@ class RyukSession(
       ).toJson();
       body['HostConfig']['AutoRemove'] = true;
       creating = true;
+
       final created = await api.containersCreatePost(name: name, body: body);
       if (!created.isSuccessful) creating = false;
       checkResponse(created);
+
       final containerId = created.body?.id;
       if (containerId == null || containerId.isEmpty) {
         throw const FormatException('Ryuk create response is missing Id');
@@ -81,11 +82,13 @@ class RyukSession(
         image: config.image,
         host: host,
       );
+
       _checkOpen();
       checkResponse(await api.containersIdStartPost(id: container.id));
       _checkOpen();
       final port = await container.mappedPort(8080);
       _checkOpen();
+
       final watch = Stopwatch()..start();
       Duration remaining() {
         final left = config.startupTimeout - watch.elapsed;
@@ -186,6 +189,7 @@ class RyukSession(
       onError: lost,
       onDone: lost,
     );
+
     socket.write('label=org.testcontainers.sessionId=$id\n');
     await ack.future.timeout(timeout);
   }
@@ -193,10 +197,12 @@ class RyukSession(
   void close() {
     _closed = true;
     _connected = false;
+
     final ack = _ack;
     if (ack != null && !ack.isCompleted) {
       ack.completeError(StateError('Ryuk session closed before ACK'));
     }
+
     _socket?.destroy();
   }
 }

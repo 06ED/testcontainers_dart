@@ -1844,21 +1844,21 @@ PluginEnv _$PluginEnvFromJson(Map<String, dynamic> json) => PluginEnv(
   settable:
       (json['Settable'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       [],
-  $Value: json['Value'] as String,
+  value: json['Value'] as String,
 );
 
 Map<String, dynamic> _$PluginEnvToJson(PluginEnv instance) => <String, dynamic>{
   'Name': instance.name,
   'Description': instance.description,
   'Settable': instance.settable,
-  'Value': instance.$Value,
+  'Value': instance.value,
 };
 
 PluginPrivilege _$PluginPrivilegeFromJson(Map<String, dynamic> json) =>
     PluginPrivilege(
       name: json['Name'] as String?,
       description: json['Description'] as String?,
-      $Value:
+      value:
           (json['Value'] as List<dynamic>?)?.map((e) => e as String).toList() ??
           [],
     );
@@ -1867,7 +1867,7 @@ Map<String, dynamic> _$PluginPrivilegeToJson(PluginPrivilege instance) =>
     <String, dynamic>{
       'Name': instance.name,
       'Description': instance.description,
-      'Value': instance.$Value,
+      'Value': instance.value,
     };
 
 Plugin _$PluginFromJson(Map<String, dynamic> json) => Plugin(
@@ -2985,7 +2985,7 @@ ContainerBlkioStatEntry _$ContainerBlkioStatEntryFromJson(
   major: (json['major'] as num?)?.toInt(),
   minor: (json['minor'] as num?)?.toInt(),
   op: json['op'] as String?,
-  $value: (json['value'] as num?)?.toInt(),
+  value: (json['value'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$ContainerBlkioStatEntryToJson(
@@ -2994,7 +2994,7 @@ Map<String, dynamic> _$ContainerBlkioStatEntryToJson(
   'major': instance.major,
   'minor': instance.minor,
   'op': instance.op,
-  'value': instance.$value,
+  'value': instance.value,
 };
 
 ContainerCPUStats _$ContainerCPUStatsFromJson(Map<String, dynamic> json) =>
@@ -4077,24 +4077,24 @@ GenericResources$Item$NamedResourceSpec
 _$GenericResources$Item$NamedResourceSpecFromJson(Map<String, dynamic> json) =>
     GenericResources$Item$NamedResourceSpec(
       kind: json['Kind'] as String?,
-      $Value: json['Value'] as String?,
+      value: json['Value'] as String?,
     );
 
 Map<String, dynamic> _$GenericResources$Item$NamedResourceSpecToJson(
   GenericResources$Item$NamedResourceSpec instance,
-) => <String, dynamic>{'Kind': instance.kind, 'Value': instance.$Value};
+) => <String, dynamic>{'Kind': instance.kind, 'Value': instance.value};
 
 GenericResources$Item$DiscreteResourceSpec
 _$GenericResources$Item$DiscreteResourceSpecFromJson(
   Map<String, dynamic> json,
 ) => GenericResources$Item$DiscreteResourceSpec(
   kind: json['Kind'] as String?,
-  $Value: (json['Value'] as num?)?.toInt(),
+  value: (json['Value'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$GenericResources$Item$DiscreteResourceSpecToJson(
   GenericResources$Item$DiscreteResourceSpec instance,
-) => <String, dynamic>{'Kind': instance.kind, 'Value': instance.$Value};
+) => <String, dynamic>{'Kind': instance.kind, 'Value': instance.value};
 
 HostConfig$BlkioWeightDevice$Item _$HostConfig$BlkioWeightDevice$ItemFromJson(
   Map<String, dynamic> json,
@@ -5036,7 +5036,7 @@ Plugin$Config$Args _$Plugin$Config$ArgsFromJson(
   settable:
       (json['Settable'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       [],
-  $Value:
+  value:
       (json['Value'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
 );
 
@@ -5045,7 +5045,7 @@ Map<String, dynamic> _$Plugin$Config$ArgsToJson(Plugin$Config$Args instance) =>
       'Name': instance.name,
       'Description': instance.description,
       'Settable': instance.settable,
-      'Value': instance.$Value,
+      'Value': instance.value,
     };
 
 Plugin$Config$Rootfs _$Plugin$Config$RootfsFromJson(

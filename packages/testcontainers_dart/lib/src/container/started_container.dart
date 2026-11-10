@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:docker_engine/docker_engine.dart';
 import 'package:http/http.dart' as http;
 
+import '../files/copy_file_from_container.dart' as files;
 import 'container_config.dart';
 
 class StartedContainer({
@@ -141,6 +142,10 @@ class StartedContainer({
       allowed: {304},
     );
   }
+
+  /// Copies one regular file, replacing the local destination only on success.
+  Future<void> copyFileFromContainer(String path, String destination) =>
+      files.copyFileFromContainer(_api, id, path, destination);
 
   Future<void> terminate() => _termination ??= _remove();
 

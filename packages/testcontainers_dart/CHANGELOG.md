@@ -1,3 +1,15 @@
+## Unreleased
+
+- Add provider-owned bridge networks with DNS aliases, session labels, Ryuk crash
+  cleanup and retryable explicit removal.
+- Copy regular files into containers before startup, with mode/UID/GID, and
+  atomically retrieve regular files from running or stopped containers. Stream
+  TAR transfers, roll back copy failures and omit file contents from diagnostics.
+- Authenticate application and Ryuk image pulls using explicit per-registry
+  credentials, `DOCKER_AUTH_CONFIG`, Docker config files and credential helpers.
+- Keep registry secrets out of authentication diagnostics and authenticated pull
+  errors; bound helper execution time and output.
+
 ## 0.2.0
 
 - Upgrade to `docker_engine` 0.2.0 with Docker Engine API support through v1.55.
