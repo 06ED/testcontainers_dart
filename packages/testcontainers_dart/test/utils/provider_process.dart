@@ -7,6 +7,7 @@ Future<void> main() async {
   );
   try {
     final provider = DockerProvider(
+      registryEnvironment: const {},
       dockerApi: connection.api,
       host: connection.host,
     );

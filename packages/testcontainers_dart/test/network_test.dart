@@ -9,6 +9,7 @@ import 'utils/docker_server.dart';
 void main() {
   late DockerServer server;
   late DockerProvider provider;
+
   setUp(() async {
     server = await DockerServer.start();
     server.handler = (request) async {
@@ -21,11 +22,14 @@ void main() {
       }
       return false;
     };
+
     provider = await DockerProvider.connect(
+      registryEnvironment: const {},
       config: DockerConfig(endpoint: server.endpoint),
       ryuk: const RyukConfig(enabled: false),
     );
   });
+
   tearDown(() async {
     provider.close();
     await server.close();
@@ -36,9 +40,11 @@ void main() {
     () async {
       final network = await provider.createNetwork();
       final created = jsonDecode(server.bodies.last);
+
       expect(created['Driver'], 'bridge');
       expect(created['Name'], network.name);
       expect(created['Labels']['org.testcontainers'], 'true');
+
       await provider.start(
         ContainerConfig(
           image: 'busybox',
@@ -46,10 +52,12 @@ void main() {
           networkAliases: ['database'],
         ),
       );
+
       final index = server.paths.indexWhere(
         (path) => path.endsWith('/containers/create'),
       );
       final container = jsonDecode(server.bodies[index]);
+
       expect(container['Labels'], created['Labels']);
       expect(container['NetworkingConfig']['EndpointsConfig'], {
         network.id: {
@@ -57,8 +65,10 @@ void main() {
         },
       });
       expect(container['HostConfig']['PortBindings'], isEmpty);
+
       await network.terminate();
       await network.terminate();
+
       expect(
         server.paths.where((path) => path.endsWith('/networks/network-1')),
         hasLength(1),
@@ -69,10 +79,12 @@ void main() {
   test('foreign or deleted networks and aliases without a network fail before Docker calls', () async {
     final network = await provider.createNetwork();
     final other = await DockerProvider.connect(
+      registryEnvironment: const {},
       config: DockerConfig(endpoint: server.endpoint),
       ryuk: const RyukConfig(enabled: false),
     );
     addTearDown(other.close);
+
     final count = server.paths.length;
     await expectLater(
       other.start(ContainerConfig(image: 'busybox', network: network)),
@@ -95,6 +107,7 @@ void main() {
       throwsArgumentError,
     );
     expect(server.paths, hasLength(count));
+
     await network.terminate();
     await expectLater(
       provider.start(ContainerConfig(image: 'busybox', network: network)),
@@ -107,6 +120,7 @@ void main() {
     () async {
       final network = await provider.createNetwork();
       var attempts = 0;
+
       server.handler = (request) async {
         attempts++;
         await DockerServer.respond(request, {
@@ -114,6 +128,7 @@ void main() {
         }, status: attempts == 1 ? 403 : 404);
         return true;
       };
+
       await expectLater(network.terminate(), throwsA(isA<DockerException>()));
       await network.terminate();
       await network.terminate();
@@ -124,6 +139,7 @@ void main() {
   test('close during creation rolls back the created network', () async {
     final entered = Completer<void>();
     final release = Completer<void>();
+
     server.handler = (request) async {
       if (!request.uri.path.endsWith('/networks/create')) return false;
       entered.complete();
@@ -136,10 +152,14 @@ void main() {
     };
     final result = provider.createNetwork();
     final failed = expectLater(result, throwsStateError);
+
     await entered.future;
+
     provider.close();
     release.complete();
+
     await failed;
+
     expect(server.paths.last, '/v1.55/networks/network-1');
     await expectLater(provider.createNetwork(), throwsStateError);
   });
@@ -151,16 +171,19 @@ void main() {
       }, status: 403);
       return true;
     };
+
     await expectLater(
       provider.createNetwork(),
       throwsA(isA<DockerException>()),
     );
+
     expect(
       server.paths.where(
         (path) => path.contains('/networks/') && !path.endsWith('/create'),
       ),
       isEmpty,
     );
+
     String? name;
     server.handler = (request) async {
       if (!request.uri.path.endsWith('/create')) return false;
@@ -171,6 +194,7 @@ void main() {
       }, status: 201);
       return true;
     };
+
     await expectLater(provider.createNetwork(), throwsFormatException);
     expect(server.paths.last, '/v1.55/networks/$name');
   });
@@ -190,6 +214,7 @@ void main() {
       }
       return true;
     };
+
     await expectLater(
       provider.createNetwork(),
       throwsA(

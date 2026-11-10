@@ -239,6 +239,7 @@ class RegistryAuth({
       await Future.wait(
         subscriptions.map((subscription) => subscription.cancel()),
       );
+      await process?.exitCode;
     }
   }
 }

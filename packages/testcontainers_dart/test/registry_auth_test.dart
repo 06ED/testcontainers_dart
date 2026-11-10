@@ -284,7 +284,9 @@ void main() {
   group('credential helpers', () {
     Future<void> helper(String name, String script) async {
       final file = File('${directory.path}/docker-credential-$name');
-      await file.writeAsString('#!/bin/sh\n$script\n');
+      await file.writeAsString(
+        '#!/bin/sh\nIFS= read -r registry || exit 7\n$script\n',
+      );
       expect((await Process.run('chmod', ['+x', file.path])).exitCode, 0);
       environment['PATH'] = '${directory.path}:/usr/bin:/bin';
     }
@@ -292,7 +294,6 @@ void main() {
     test('registry helper overrides store and inline auth, using stdin not arguments', () async {
       await helper('specific', '''
 test "\$#" = 1 && test "\$1" = get || exit 9
-read registry
 test "\$registry" = registry.test:5000 || exit 8
 printf '%s' '{"Username":"helper","Secret":"specific"}'
 ''');
@@ -326,7 +327,6 @@ printf '%s' '{"Username":"helper","Secret":"specific"}'
 
     test('helper token and Docker Hub server address', () async {
       await helper('token', '''
-read registry
 test "\$registry" = https://index.docker.io/v1/ || exit 9
 printf '%s' '{"Username":"<token>","Secret":"helper-token"}'
 ''');
@@ -466,7 +466,12 @@ printf '%s' '{"Username":"<token>","Secret":"helper-token"}'
         ),
       );
       final pid = (await pidFile.readAsString()).trim();
-      final result = await Process.run('kill', ['-0', pid]);
+      final result = await Process.run('/bin/sh', [
+        '-c',
+        r'kill -0 "$1"',
+        'check-helper',
+        pid,
+      ]);
       expect(
         result.exitCode,
         isNot(0),

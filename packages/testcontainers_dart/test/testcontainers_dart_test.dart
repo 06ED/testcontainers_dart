@@ -210,6 +210,7 @@ void main() {
       'untagged images pull latest, not every tag in the repository',
       () async {
         final provider = DockerProvider(
+          registryEnvironment: const {},
           dockerApi: api,
           ryuk: const RyukConfig(enabled: false),
         );
@@ -232,6 +233,7 @@ void main() {
         final labels = {'owner': 'test'};
         final started =
             DockerProvider(
+              registryEnvironment: const {},
               dockerApi: api,
               ryuk: const RyukConfig(enabled: false),
             ).start(
@@ -273,6 +275,7 @@ void main() {
         (_) async => response<dynamic>(++calls == 1 ? 500 : 204, null),
       );
       final container = await DockerProvider(
+        registryEnvironment: const {},
         dockerApi: api,
         ryuk: const RyukConfig(enabled: false),
       ).start(const ContainerConfig(image: 'redis'));
@@ -292,6 +295,7 @@ void main() {
         ).thenAnswer((_) async => response<ContainerCreateResponse>(409, null));
         await expectLater(
           DockerProvider(
+            registryEnvironment: const {},
             dockerApi: api,
             ryuk: const RyukConfig(enabled: false),
           ).start(const ContainerConfig(image: 'redis')),
@@ -311,6 +315,7 @@ void main() {
       'passes environment, command, ports and read-only bind mounts',
       () async {
         final provider = DockerProvider(
+          registryEnvironment: const {},
           dockerApi: api,
           ryuk: const RyukConfig(enabled: false),
         );
@@ -358,6 +363,7 @@ void main() {
 
     test('validates requests before contacting Docker', () async {
       final provider = DockerProvider(
+        registryEnvironment: const {},
         dockerApi: api,
         ryuk: const RyukConfig(enabled: false),
       );
@@ -388,6 +394,7 @@ void main() {
           );
       await expectLater(
         DockerProvider(
+          registryEnvironment: const {},
           dockerApi: api,
           ryuk: const RyukConfig(enabled: false),
         ).start(const ContainerConfig(image: 'redis')),
@@ -414,6 +421,7 @@ void main() {
           );
       await expectLater(
         DockerProvider(
+          registryEnvironment: const {},
           dockerApi: api,
           ryuk: const RyukConfig(enabled: false),
         ).start(const ContainerConfig(image: 'redis')),
@@ -440,6 +448,7 @@ void main() {
             .thenAnswer((_) async => response<dynamic>(500, null));
         await expectLater(
           DockerProvider(
+            registryEnvironment: const {},
             dockerApi: api,
             ryuk: const RyukConfig(enabled: false),
           ).start(const ContainerConfig(image: 'redis')),
@@ -469,6 +478,7 @@ void main() {
         ).thenAnswer((_) async => response<dynamic>(500, null));
         await expectLater(
           DockerProvider(
+            registryEnvironment: const {},
             dockerApi: api,
             ryuk: const RyukConfig(enabled: false),
           ).start(ContainerConfig(image: 'redis', waitStrategy: FailingWait())),
@@ -496,6 +506,7 @@ void main() {
           ),
         ).thenAnswer((_) async => response<dynamic>(404, null));
         final container = await DockerProvider(
+          registryEnvironment: const {},
           dockerApi: api,
           ryuk: const RyukConfig(enabled: false),
         ).start(const ContainerConfig(image: 'redis'));
@@ -509,6 +520,7 @@ void main() {
 
     test('fails clearly when a port has no binding', () async {
       final container = await DockerProvider(
+        registryEnvironment: const {},
         dockerApi: api,
         ryuk: const RyukConfig(enabled: false),
       ).start(const ContainerConfig(image: 'redis'));
@@ -517,6 +529,7 @@ void main() {
 
     test('starts container using pull -> create -> start flow', () async {
       final provider = DockerProvider(
+        registryEnvironment: const {},
         dockerApi: api,
         ryuk: const RyukConfig(enabled: false),
       );
@@ -550,6 +563,7 @@ void main() {
       );
 
       final provider = DockerProvider(
+        registryEnvironment: const {},
         dockerApi: api,
         ryuk: const RyukConfig(enabled: false),
       );
@@ -569,6 +583,7 @@ void main() {
 
     test('uses stop timeout when stopping container', () async {
       final provider = DockerProvider(
+        registryEnvironment: const {},
         dockerApi: api,
         ryuk: const RyukConfig(enabled: false),
       );

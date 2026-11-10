@@ -107,6 +107,7 @@ void main() {
         return true;
       };
       provider = await DockerProvider.connect(
+        registryEnvironment: const {},
         config: DockerConfig(endpoint: docker.endpoint),
         ryuk: const RyukConfig(startupTimeout: Duration(milliseconds: 300)),
       );
@@ -143,6 +144,7 @@ void main() {
         return handler(request);
       };
       provider = await DockerProvider.connect(
+        registryEnvironment: const {},
         config: DockerConfig(endpoint: docker.endpoint),
         ryuk: const RyukConfig(image: 'ryuk.test/ryuk:1'),
         registryCredentials: {
@@ -180,6 +182,7 @@ void main() {
           return handler(request);
         };
         provider = await DockerProvider.connect(
+          registryEnvironment: const {},
           config: DockerConfig(endpoint: docker.endpoint),
           registryCredentials: {
             'docker.io': RegistryCredentials(
@@ -348,6 +351,7 @@ void main() {
         test('Ryuk respects $policy (local image: $present)', () async {
           provider.close();
           provider = await DockerProvider.connect(
+            registryEnvironment: const {},
             config: DockerConfig(endpoint: docker.endpoint),
             ryuk: RyukConfig(pullPolicy: policy),
           );
@@ -546,6 +550,7 @@ void main() {
       () async {
         provider.close();
         provider = await DockerProvider.connect(
+          registryEnvironment: const {},
           config: DockerConfig(endpoint: docker.endpoint),
           ryuk: const RyukConfig(
             image: 'mirror/ryuk:0.14.0',
@@ -684,6 +689,7 @@ void main() {
     test('disabled Ryuk preserves explicit cleanup behavior', () async {
       provider.close();
       provider = await DockerProvider.connect(
+        registryEnvironment: const {},
         config: DockerConfig(endpoint: docker.endpoint),
         ryuk: const RyukConfig(enabled: false),
       );

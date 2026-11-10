@@ -14,6 +14,7 @@ void main() {
   setUp(() async {
     server = await DockerServer.start();
     provider = await DockerProvider.connect(
+      registryEnvironment: const {},
       config: DockerConfig(endpoint: server.endpoint),
       ryuk: const RyukConfig(enabled: false),
     );

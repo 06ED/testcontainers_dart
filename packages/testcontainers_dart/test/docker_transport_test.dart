@@ -67,6 +67,7 @@ void main() {
 
     Future<void> connect() async {
       provider = await DockerProvider.connect(
+        registryEnvironment: const {},
         config: DockerConfig(endpoint: server.endpoint),
         ryuk: const RyukConfig(enabled: false),
       );
@@ -284,6 +285,7 @@ void main() {
       await expectLater(
         Testcontainers.run(
           const ContainerConfig(image: 'private/image'),
+          registryEnvironment: const {},
           config: DockerConfig(endpoint: server.endpoint),
           ryuk: const RyukConfig(enabled: false),
         ),
@@ -337,6 +339,7 @@ void main() {
       server.handler = (request) async => request.uri.path == '/version';
       await expectLater(
         DockerProvider.connect(
+          registryEnvironment: const {},
           config: DockerConfig(
             endpoint: server.endpoint,
             requestTimeout: const Duration(milliseconds: 30),
@@ -356,6 +359,7 @@ void main() {
       };
       await expectLater(
         DockerProvider.connect(
+          registryEnvironment: const {},
           config: DockerConfig(
             endpoint: server.endpoint,
             requestTimeout: const Duration(milliseconds: 50),
@@ -382,6 +386,7 @@ void main() {
       () async {
         final container = await Testcontainers.run(
           const ContainerConfig(image: 'redis'),
+          registryEnvironment: const {},
           config: DockerConfig(endpoint: server.endpoint),
           ryuk: const RyukConfig(enabled: false),
         );
@@ -410,6 +415,7 @@ void main() {
       await directory.delete(recursive: true);
     });
     final provider = await DockerProvider.connect(
+      registryEnvironment: const {},
       ryuk: const RyukConfig(enabled: false),
       config: DockerConfig(
         endpoint: Uri(scheme: 'unix', path: path),

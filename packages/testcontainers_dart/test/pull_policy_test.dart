@@ -43,6 +43,7 @@ void main() {
     };
 
     provider = await DockerProvider.connect(
+      registryEnvironment: const {},
       config: DockerConfig(endpoint: server.endpoint),
       ryuk: const RyukConfig(enabled: false),
     );

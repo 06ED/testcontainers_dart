@@ -35,6 +35,44 @@ void main() {
     await server.close();
   });
 
+  test(
+    'explicit registry environment can select credentials or disable discovery',
+    () async {
+      final headers = <String?>[];
+      server.handler = (request) async {
+        if (request.uri.path.endsWith('/images/create')) {
+          headers.add(request.headers.value('x-registry-auth'));
+        }
+        return false;
+      };
+      for (final environment in <Map<String, String>>[
+        {},
+        {
+          'DOCKER_AUTH_CONFIG': jsonEncode({
+            'auths': {
+              'docker.io': {
+                'auth': base64Encode(utf8.encode('isolated:$secret')),
+              },
+            },
+          }),
+        },
+      ]) {
+        final container = await Testcontainers.run(
+          const ContainerConfig(image: 'redis', pullPolicy: .always),
+          config: DockerConfig(endpoint: server.endpoint),
+          ryuk: const RyukConfig(enabled: false),
+          registryEnvironment: environment,
+        );
+        await container.terminate();
+      }
+      expect(headers.first, isNull);
+      expect(
+        jsonDecode(utf8.decode(base64Url.decode(headers.last!)))['username'],
+        'isolated',
+      );
+    },
+  );
+
   test('pull sends base64url auth only to the pull endpoint', () async {
     final requests = <String, String?>{};
     server.handler = (request) async {
@@ -174,6 +212,7 @@ void main() {
 
       final container = await Testcontainers.run(
         const ContainerConfig(image: 'registry.test/app'),
+        registryEnvironment: const {},
         config: DockerConfig(endpoint: server.endpoint),
         ryuk: const RyukConfig(enabled: false),
         registryCredentials: {
@@ -205,6 +244,7 @@ void main() {
         return false;
       };
       final provider = DockerProvider(
+        registryEnvironment: const {},
         dockerApi: connection.api,
         ryuk: const RyukConfig(enabled: false),
         registryCredentials: {

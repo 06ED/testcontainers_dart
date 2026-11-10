@@ -15,6 +15,7 @@ void main() {
     directory = await Directory.systemTemp.createTemp('container-files-');
     server = await DockerServer.start();
     provider = await DockerProvider.connect(
+      registryEnvironment: const {},
       config: DockerConfig(endpoint: server.endpoint),
       ryuk: const RyukConfig(enabled: false),
     );

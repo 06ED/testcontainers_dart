@@ -306,6 +306,13 @@ final provider = await DockerProvider.connect(
 `Testcontainers.run()` and the injected-API `DockerProvider` constructor accept the
 same parameter. Use `RegistryCredentials.identityToken(token)` for identity tokens.
 
+For deterministic credential discovery, these entry points also accept
+`registryEnvironment`. This map replaces the process environment **for registry
+authentication only**; pass `const {}` to disable environment/file/helper discovery
+while retaining any explicit credentials. Omitting it uses the process environment
+as usual. Docker connection settings, Ryuk settings and container environment
+variables are unaffected.
+
 Credentials are resolved for each registry, in order:
 
 1. Explicit `registryCredentials`.

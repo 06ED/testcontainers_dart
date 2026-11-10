@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Allow an explicit `registryEnvironment` to isolate credential discovery from
+  process settings. Make helper fixtures portable and await helper process exit.
 - Add provider-owned bridge networks with DNS aliases, session labels, Ryuk crash
   cleanup and retryable explicit removal.
 - Copy regular files into containers before startup, with mode/UID/GID, and

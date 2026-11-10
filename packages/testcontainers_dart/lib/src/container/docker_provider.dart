@@ -17,9 +17,13 @@ class DockerProvider {
     this.host = 'localhost',
     RyukConfig? ryuk,
     Map<String, RegistryCredentials> registryCredentials = const {},
+    Map<String, String>? registryEnvironment,
   }) : _api = dockerApi,
        _connection = null,
-       _registryAuth = RegistryAuth(credentials: registryCredentials) {
+       _registryAuth = RegistryAuth(
+         credentials: registryCredentials,
+         environment: registryEnvironment,
+       ) {
     _configureRyuk(ryuk);
   }
 
@@ -43,10 +47,14 @@ class DockerProvider {
     DockerConfig? config,
     RyukConfig? ryuk,
     Map<String, RegistryCredentials> registryCredentials = const {},
+    Map<String, String>? registryEnvironment,
   }) async {
     final settings = ryuk ?? RyukConfig.fromEnvironment();
     settings.validate();
-    final auth = RegistryAuth(credentials: registryCredentials);
+    final auth = RegistryAuth(
+      credentials: registryCredentials,
+      environment: registryEnvironment,
+    );
     return DockerProvider._(
       await DockerConnection.connect(config ?? DockerConfig.fromEnvironment()),
       settings,
@@ -230,12 +238,14 @@ abstract final class Testcontainers() {
     DockerConfig? config,
     RyukConfig? ryuk,
     Map<String, RegistryCredentials> registryCredentials = const {},
+    Map<String, String>? registryEnvironment,
   }) async {
     request.validate();
     final provider = await DockerProvider.connect(
       config: config,
       ryuk: ryuk,
       registryCredentials: registryCredentials,
+      registryEnvironment: registryEnvironment,
     );
 
     try {
